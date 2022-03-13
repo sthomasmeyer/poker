@@ -1,0 +1,11 @@
+Python 3.9.7
+Flask 2.0.3
+Werkzeug 2.0.3
+SQLAlchemy 1.4
+Flask-SQLAlchemy 2.5.1
+Psycopg2-binary 2.9.3
+WTForms 3.0.1
+Flask-WTF 1.0.0
+Bcrypt 3.2.0
+Flask-Bcrypt 0.7.1
+email-validator 1.1.3

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&family=Roboto&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href={{ url_for("static", filename="poker-variations.css")}}>
+  <title>User Data Storage Tutorial</title>
+</head>
+<body>
+
+  <div id="flash">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for message in messages %}
+          <li class="flash-messages">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- This [block] tag defines a section of the HTML <body>...
+  that can be altered by "children" of this "users" template.  -->
+  {% block content %}
+  <h1>Welcome</h1>
+
+  <form method="POST">
+    {% include "_form.html" %}
+    <button id="login">Login</button>
+  </form>
+
+  <form action="/create_account">
+    <button id="register">Create a New Account</button>
+  </form>
+
+  {% endblock %}
+</body>
+</html>

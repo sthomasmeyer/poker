@@ -1,0 +1,17 @@
+<!-- The following line of code ensures that this HTML template is...
+a "child" of the "base" template we've created. -->
+{% extends 'base.html' %}
+
+<!-- In order to alter the pre-defined [block] of the "base" HTML template...
+that is meant to be manipulated by its "children", we must first write... -->
+{% block content %}
+<!-- Then, we can fill this [block] w/ anything our heart desires. -->
+
+  <h1>Create an Account</h1>
+
+  <form method="POST">
+    {% include "_form.html" %}
+    <button>Create</button>
+  </form>
+
+{% endblock %}

@@ -1,0 +1,35 @@
+<!-- The following line of code ensures that this HTML template is...
+a "child" of the "base" template we've created. -->
+{% extends 'base.html' %}
+
+<!-- In order to alter the pre-defined [block] of the "base" HTML template...
+that is meant to be manipulated by its "children", we must first write... -->
+{% block content %}
+<!-- Then, we can fill this [block] w/ anything our heart desires. -->
+
+  <h1>Texas Hold'em</h1>
+  <p>You are playing heads-up against a computer opponent. Good luck!</p>
+
+  {% for player in players %}
+    <div id="player">
+      <div>{{ player.name }}</div>
+      <div>Chip Count: {{ player.stack }}</div>      
+        <div>Hand: {% for card in player.hole_cards %} {{ card.reveal() }} {% endfor %}</div>
+    </div>
+  {% endfor %}
+
+  <div id="board">
+    <ul id="community-cards">
+        {% for card in flop %}
+        <li>{{ card.reveal() }}</li>
+        {% endfor %}
+        <li>{{ turn[0].reveal() }}</li>
+        <li>{{ river[0].reveal() }}</li>
+     </ul>
+  </div>
+
+  <button id="flop">Flop</button>
+
+  <script src="https://unpkg.com/axios/dist/axios.js"></script>
+  <script src="/static/texasHoldEm.js"></script>
+{%endblock%}

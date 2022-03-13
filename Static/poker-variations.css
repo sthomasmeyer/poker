@@ -1,0 +1,12 @@
+body {
+  background-color: ghostwhite;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+button:hover {
+  cursor: pointer;
+}
+
+#player {
+  margin: 10px;
+}
