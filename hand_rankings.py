@@ -170,7 +170,13 @@ def check_straight_flush(hand):
         print(f"ROYAL FLUSH: {sorted_suited_card_vals}")
         score = 135
         return score
-    elif sorted_suited_card_vals[0] == 14 and sorted_suited_card_vals[final_el_index] == 2 and sorted_suited_card_vals[final_el_index - 1] == 3 and sorted_suited_card_vals[final_el_index - 2] == 4 and sorted_suited_card_vals[final_el_index - 3] == 5:
+    elif (
+        sorted_suited_card_vals[0] == 14
+        and sorted_suited_card_vals[final_el_index] == 2
+        and sorted_suited_card_vals[final_el_index - 1] == 3
+        and sorted_suited_card_vals[final_el_index - 2] == 4
+        and sorted_suited_card_vals[final_el_index - 3] == 5
+    ):
         print(f"STRAIGHT FLUSH (A-5): {sorted_suited_card_vals}")
         score = 125
         return score
@@ -331,7 +337,13 @@ def check_straight(hand):
         # MAX straight score = 74.XYZ
         score = 60 + sorted_card_vals[0]
         return score
-    elif sorted_card_vals[0] == 14 and sorted_card_vals[final_el_index] == 2 and sorted_card_vals[final_el_index - 1] == 3 and sorted_card_vals[final_el_index - 2] == 4 and sorted_card_vals[final_el_index - 3] == 5:
+    elif (
+        sorted_card_vals[0] == 14
+        and sorted_card_vals[final_el_index] == 2
+        and sorted_card_vals[final_el_index - 1] == 3
+        and sorted_card_vals[final_el_index - 2] == 4
+        and sorted_card_vals[final_el_index - 3] == 5
+    ):
         print(f"STRAIGHT (A-5): {sorted_card_vals}")
         score = 65
         return score
@@ -450,4 +462,12 @@ def check_pair(hand):
 
 
 for player in players:
-    print(f"{player.name}: {check_straight_flush(player.post_river_hand)}")
+    player.hand_ranking = check_straight_flush(player.post_river_hand)
+    print(f"{player.hand_ranking} points for {player.name}.")
+
+if player_one.hand_ranking > player_two.hand_ranking:
+    print(f"{player_one.name} wins!")
+elif player_one.hand_ranking == player_two.hand_ranking:
+    print(f"Draw. Split the pot.")
+else:
+    print(f"{player_two.name} wins!")

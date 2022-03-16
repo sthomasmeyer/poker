@@ -12,6 +12,9 @@ class Player(object):
     def __init__(self, name, stack):
         self.name = name
         self.stack = "${:,.2f}".format(stack)
+        # Create a [hand_ranking] attribute that will allow players...
+        # to compare the strength of their hand against opponents.
+        self.hand_ranking = 0
         # Create a [hole_cards] list to capture the two cards each player is dealt.
         self.hole_cards = []
 

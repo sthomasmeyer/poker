@@ -11,7 +11,9 @@ from models import bcrypt, db, connect_db, User
 # Import the forms you've created from the [forms.py] file.
 from forms import UserLoginForm, CreateAccountForm
 
-from game_elements import Player, Card, Deck
+from game_elements import Player, Deck
+
+from hand_rankings import check_straight_flush
 
 app = Flask(__name__)
 
@@ -66,10 +68,6 @@ def home():
         # before storing it in the database. Use the [replace] method to remove...
         # whitespace, and the [lower] method to store username (+) email all in lower-case.
         for k in data:
-
-            # Note to self: Tighten-up password form validators... DO NOT manipulate password data w/out user knowledge!!
-            if k == "password":
-                data[k] = data[k].replace(" ", "")
             if k != "csrf_token" and k != "password":
                 data[k] = data[k].lower()
                 data[k] = data[k].replace(" ", "")
@@ -105,12 +103,8 @@ def register():
 
     if form.validate_on_submit():
         data = {k: v for k, v in form.data.items() if k != "csrf_token"}
-        ### Note to self: replace this "data" dictionary w/ specific requests --> username, password, email address...
-        ### Note to self: research non-strict way to complete this step.
 
         for k in data:
-            if k == "password":
-                data[k] = data[k].replace(" ", "")
             if k != "csrf_token" and k != "password":
                 data[k] = data[k].lower()
                 data[k] = data[k].replace(" ", "")
@@ -198,24 +192,36 @@ def play_texas_hold_em(username):
     new_deck = Deck()
     new_deck.shuffle()
 
-    for card in new_deck.cards:
-        print(card.reveal())
-
     for i in range(1, 3):
         for player in players:
             player.accept_dealt_card(new_deck)
 
     flop = new_deck.flop_protocol()
-    ### Add [flop] to session storage --> *this is not necessarily a good idea.
-    ### session["flop"] = flop
     for card in flop:
         print(f"flop: {card.reveal()}")
+
+    for player in players:
+        player.incorporate_flop(new_deck)
 
     turn = new_deck.turn_protocol()
     print(f"turn: {turn[0].reveal()}")
 
+    for player in players:
+        player.incorporate_turn(new_deck)
+
     river = new_deck.river_protocol()
     print(f"river: {river[0].reveal()}")
+
+    for player in players:
+        player.incorporate_river(new_deck)
+
+    print(f"{active_user.name}: {active_user.post_river_hand}")
+    print(f"{computer_opponent.name}: {computer_opponent.post_river_hand}")
+
+    active_user.hand_ranking = check_straight_flush(active_user.post_river_hand)
+    computer_opponent.hand_ranking = check_straight_flush(
+        computer_opponent.post_river_hand
+    )
 
     return render_template(
         "texas_hold_em.html",

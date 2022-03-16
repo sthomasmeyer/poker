@@ -10,26 +10,78 @@ that is meant to be manipulated by its "children", we must first write... -->
   <h1>Texas Hold'em</h1>
   <p>You are playing heads-up against a computer opponent. Good luck!</p>
 
-  {% for player in players %}
-    <div id="player">
-      <div>{{ player.name }}</div>
-      <div>Chip Count: {{ player.stack }}</div>      
-        <div>Hand: {% for card in player.hole_cards %} {{ card.reveal() }} {% endfor %}</div>
+  <div id="player-one">
+    <div>{{ players[0].name }}</div>
+    <div>Chip Count: {{ players[0].stack }}</div>
+    <div>Hand: [{% for card in players[0].hole_cards %} {{ card.reveal() }} {% endfor %}]</div>
+    <div hidden id="player-score">
+      {% if players[0].hand_ranking < 15 %}
+        High-card: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 15 and players[0].hand_ranking < 30 %}
+        Pair: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 30 and players[0].hand_ranking < 45 %}
+        Two-pair: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 45 and players[0].hand_ranking < 60 %}
+        Three-of-a-kind: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 60 and players[0].hand_ranking < 75 %}
+        Straight: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 75 and players[0].hand_ranking < 90 %}
+        Flush: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 90 and players[0].hand_ranking < 105 %}
+        Full-house: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 105 and players[0].hand_ranking < 120 %}
+        Four-of-a-kind: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking > 120 and players[0].hand_ranking < 135 %}
+        Straight-flush: {{ players[0].hand_ranking }}
+      {% elif players[0].hand_ranking == 135 %}
+        ROYAL FLUSH: {{ players[0].hand_ranking }}
+      {% endif %}
     </div>
-  {% endfor %}
-
-  <div id="board">
-    <ul id="community-cards">
-        {% for card in flop %}
-        <li>{{ card.reveal() }}</li>
-        {% endfor %}
-        <li>{{ turn[0].reveal() }}</li>
-        <li>{{ river[0].reveal() }}</li>
-     </ul>
   </div>
+  <br>
+  <div id="board">
+    <div id="community-cards">
+      Community Cards:
+      <span hidden id="flop">[{% for card in flop %} {{ card.reveal() }} {% endfor %}]</span>
+      <span hidden id="turn">[{{ turn[0].reveal() }}]</span>
+      <span hidden id="river">[{{ river[0].reveal() }}]</span>
+    </div>
+  </div>
+  <br>
+  <div id="computer-opp">
+    <div>{{ players[1].name }}</div>
+    <div>Chip Count: {{ players[1].stack }}</div>
+    <div hidden id="opps-hand">Hand: [{% for card in players[1].hole_cards %} {{ card.reveal() }} {% endfor %}]</div>
+    <div hidden id="opps-score">
+      {% if players[1].hand_ranking < 15 %}
+        High-card: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 15 and players[1].hand_ranking < 30 %}
+        Pair: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 30 and players[1].hand_ranking < 45 %}
+        Two-pair: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 45 and players[1].hand_ranking < 60 %}
+        Three-of-a-kind: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 60 and players[1].hand_ranking < 75 %}
+        Straight: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 75 and players[1].hand_ranking < 90 %}
+        Flush: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 90 and players[1].hand_ranking < 105 %}
+        Full-house: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 105 and players[1].hand_ranking < 120 %}
+        Four-of-a-kind: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking > 120 and players[1].hand_ranking < 135 %}
+        Straight-flush: {{ players[1].hand_ranking }}
+      {% elif players[1].hand_ranking == 135 %}
+        ROYAL FLUSH: {{ players[1].hand_ranking }}
+      {% endif %}
+    </div>
+  </div>
+  <br>
+  <button id="flop-btn">Flop</button>
+  <button hidden id="turn-btn">Turn</button>
+  <button hidden id="river-btn">River</button>
+  <button hidden id="showdown-btn">Showdown</button>
 
-  <button id="flop">Flop</button>
-
-  <script src="https://unpkg.com/axios/dist/axios.js"></script>
+  <!-- <script src="https://unpkg.com/axios/dist/axios.js"></script> -->
   <script src="/static/texasHoldEm.js"></script>
 {%endblock%}

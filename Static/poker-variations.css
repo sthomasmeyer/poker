@@ -10,3 +10,12 @@ button:hover {
 #player {
   margin: 10px;
 }
+
+#password-instructions {
+  margin: 10px;
+  padding: 5px;
+  padding-right: 27px;
+  font-size: 10px;
+  width: fit-content;
+  border: 2px solid lightskyblue;
+}
