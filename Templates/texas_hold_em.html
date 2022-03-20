@@ -9,9 +9,14 @@ that is meant to be manipulated by its "children", we must first write... -->
 
   <h1>Texas Hold'em</h1>
   <p>You are playing heads-up against a computer opponent. Good luck!</p>
+  <ul id="instructions">
+    <li>If you win the hand, you receive $15</li>
+    <li>If you lose the hand, you lose $10</li>
+    <li>If you fold before the showdown, you lose $5</li>
+  </ul>
 
   <div id="player-one">
-    <div>{{ players[0].name }}</div>
+    <div><strong>{{ players[0].name }}</strong></div>
     <div>Chip Count: {{ players[0].stack }}</div>
     <div>Hand: [{% for card in players[0].hole_cards %} {{ card.reveal() }} {% endfor %}]</div>
     <div hidden id="player-score">
@@ -77,10 +82,26 @@ that is meant to be manipulated by its "children", we must first write... -->
     </div>
   </div>
   <br>
-  <button id="flop-btn">Flop</button>
-  <button hidden id="turn-btn">Turn</button>
-  <button hidden id="river-btn">River</button>
-  <button hidden id="showdown-btn">Showdown</button>
+  <div id="options">
+    <form action="/texas_hold_em/fold/{{ user.username }}"><button id="fold-btn">Fold</button></form>
+    <button id="call-pre-flop-btn">Call</button>
+  </div>
+
+  <button hidden id="flop-btn">Reveal Flop</button>
+  <button hidden id="turn-btn">Reveal Turn</button>
+  <button hidden id="river-btn">Reveal River</button>
+
+  <div hidden id="showdown">
+    {% if players[0].hand_ranking > players[1].hand_ranking %}
+    <form id="showdown-win-form" action="/texas_hold_em/win/{{ user.username }}">
+      <button id="showdown-win-btn">Showdown</button>
+    </form>
+    {% elif players[1].hand_ranking > players[0].hand_ranking %}
+    <form id="showdown-loss-form" action="/texas_hold_em/loss/{{ user.username }}">
+      <button id="showdown-loss-btn">Showdown</button>
+    </form>
+    {% endif %}
+  </div>
 
   <!-- <script src="https://unpkg.com/axios/dist/axios.js"></script> -->
   <script src="/static/texasHoldEm.js"></script>

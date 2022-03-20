@@ -15,31 +15,30 @@ for i in range(1, 3):
     for player in players:
         player.accept_dealt_card(new_deck)
 
-new_deck.flop_protocol()
-new_deck.turn_protocol()
-new_deck.river_protocol()
-
 for card in player_one.hole_cards:
-    print(f"Chamath's cards: {card.value} of {card.suit}")
+    print(f"Chamath: {card.value} of {card.suit}")
 
 for card in player_two.hole_cards:
-    print(f"Sacks' cards: {card.value} of {card.suit}")
+    print(f"Sacks: {card.value} of {card.suit}")
+
+new_deck.flop_protocol()
+for player in players:
+    player.incorporate_flop(new_deck)
 
 for card in new_deck.flop:
     print(f"flop: {card.value} of {card.suit}")
 
-for player in players:
-    player.incorporate_flop(new_deck)
-
-print(f"turn: {new_deck.turn[0].value} of {new_deck.turn[0].suit}")
-
+new_deck.turn_protocol()
 for player in players:
     player.incorporate_turn(new_deck)
 
-print(f"river: {new_deck.river[0].value} of {new_deck.river[0].suit}")
+print(f"turn: {new_deck.turn[0].value} of {new_deck.turn[0].suit}")
 
+new_deck.river_protocol()
 for player in players:
     player.incorporate_river(new_deck)
+
+print(f"river: {new_deck.river[0].value} of {new_deck.river[0].suit}")
 
 ### END of the [test] classes code... COMMENCE hand-rankings ###
 

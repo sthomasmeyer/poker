@@ -5,12 +5,15 @@ import random
 # PLAYERS that can: 1) hold cards, 2) check, 3) raise, 4) fold...
 # 5) call, and 6) accumulate chips. CARDS w/ suits + values that...
 # can be revealed. A DECK (of cards) that can be: 1) shuffled...
-# 2) dealt, or 3) "burned".
+# 2) dealt, or 3) "burned". A POT that contains a list of players...
+# involved in a given hand as well as the chip-count.
 
 
 class Player(object):
     def __init__(self, name, stack):
         self.name = name
+        # Create a [dealer] attribute w/ a default value of "False"
+        self.dealer = False
         self.stack = "${:,.2f}".format(stack)
         # Create a [hand_ranking] attribute that will allow players...
         # to compare the strength of their hand against opponents.
@@ -53,6 +56,16 @@ class Player(object):
             self.post_river_hand.append(card)
         self.post_river_hand.append(deck.river[0])
         return self
+
+    def blind(self, amount):
+        if self.dealer == False:
+            # If the player is *not* the dealer, then...
+            # they will pay the big blind.
+            pass
+        if self.dealer == True:
+            # If the player is the dealer, then they...
+            # will pay the small blind.
+            pass
 
     # def check(self):
 
@@ -141,3 +154,13 @@ class Deck(object):
         self.cards.clear()
         Deck.build()
         Deck.shuffle()
+
+
+class Pot(object):
+    def __init__(self, players):
+        # Create a [players] list to keep track of the...
+        # players involved in each pot.
+        self.players = []
+        # Create a [chips] attribute to keep track of the...
+        # number of chips involved in each pot.
+        self.chips = 0

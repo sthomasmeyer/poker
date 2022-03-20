@@ -11,8 +11,10 @@ from models import bcrypt, db, connect_db, User
 # Import the forms you've created from the [forms.py] file.
 from forms import UserLoginForm, CreateAccountForm
 
-from game_elements import Player, Deck
+# Import the classes you've created from the [game_elements.py] file.
+from game_elements import Player, Deck, Pot
 
+# Import the classes you've created from the [game_elements.py] file.
 from hand_rankings import check_straight_flush
 
 app = Flask(__name__)
@@ -90,6 +92,10 @@ def home():
             # session storage to keep track of which specific user is logged in.
             session["username"] = username
 
+            # Reward users w/ +100 capital on successful login.
+            existing_user.capital += 100
+            db.session.commit()
+
             return redirect(f"/user/{username}")
 
     return render_template("base.html", form=form)
@@ -125,7 +131,7 @@ def register():
         for user in users:
             if user.email == new_user.email:
                 flash("An account associated with that email address already exists.")
-                return redirect("/new_user")
+                return redirect("/create_account")
 
         # Use [bcrypt] to generate a "hashed" version of the user's password...
         # This is *important* bc storing it as plaintext in our database...
@@ -180,7 +186,7 @@ def play_texas_hold_em(username):
 
     # Create an [active_user] instance of the Player class...
     # This is (obviously) the user who is logged-in + actively playing.
-    active_user = Player(username, 100)
+    active_user = Player(username, user.capital)
     players.append(active_user)
 
     # Create a [computer_opponent] instance of the Player class...
@@ -197,20 +203,16 @@ def play_texas_hold_em(username):
             player.accept_dealt_card(new_deck)
 
     flop = new_deck.flop_protocol()
-    for card in flop:
-        print(f"flop: {card.reveal()}")
 
     for player in players:
         player.incorporate_flop(new_deck)
 
     turn = new_deck.turn_protocol()
-    print(f"turn: {turn[0].reveal()}")
 
     for player in players:
         player.incorporate_turn(new_deck)
 
     river = new_deck.river_protocol()
-    print(f"river: {river[0].reveal()}")
 
     for player in players:
         player.incorporate_river(new_deck)
@@ -231,6 +233,42 @@ def play_texas_hold_em(username):
         turn=turn,
         river=river,
     )
+
+
+@app.route("/texas_hold_em/fold/<username>", methods=["GET", "POST"])
+def folded(username):
+    user = User.query.get_or_404(username)
+
+    # Punish users w/ -5 capital bc of fold (de facto loss).
+    user.capital -= 5
+    db.session.commit()
+
+    flash(f"Previous hand: [fold] {user.username}'s stack decreased by $5")
+    return redirect(f"/texas_hold_em/{username}")
+
+
+@app.route("/texas_hold_em/win/<username>", methods=["GET", "POST"])
+def won_hand(username):
+    user = User.query.get_or_404(username)
+
+    # Reward users w/ +10 capital if they win a hand.
+    user.capital += 15
+    db.session.commit()
+
+    flash(f"Previous hand: [win] {user.username}'s stack increased by $15")
+    return redirect(f"/texas_hold_em/{username}")
+
+
+@app.route("/texas_hold_em/loss/<username>", methods=["GET", "POST"])
+def lost_hand(username):
+    user = User.query.get_or_404(username)
+
+    # Punish users w/ -10 capital if they lose a hand.
+    user.capital -= 10
+    db.session.commit()
+
+    flash(f"Previous hand: [loss] {user.username}'s stack decreased by $10")
+    return redirect(f"/texas_hold_em/{username}")
 
 
 @app.route("/delete/user/<username>", methods=["POST"])

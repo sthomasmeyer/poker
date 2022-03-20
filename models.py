@@ -33,6 +33,7 @@ class User(db.Model):
     __tablename__ = "users"
 
     username = db.Column(db.Text, unique=True, primary_key=True)
+    capital = db.Column(db.Integer, nullable=False, default=0)
     email = db.Column(db.Text, unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
