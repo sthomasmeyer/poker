@@ -1,20 +1,27 @@
 # Import Python's [random] module.
 import random
 
+# Import Python's [json] module.
+import json
+
 # This file contains vital game elements, including...
 # PLAYERS that can: 1) hold cards, 2) check, 3) raise, 4) fold...
 # 5) call, and 6) accumulate chips. CARDS w/ suits + values that...
 # can be revealed. A DECK (of cards) that can be: 1) shuffled...
-# 2) dealt, or 3) "burned". A POT that contains a list of players...
-# involved in a given hand as well as the chip-count.
-
+# 2) dealt, or 3) "burned". 
 
 class Player(object):
     def __init__(self, name, stack):
         self.name = name
         # Create a [dealer] attribute w/ a default value of "False"
-        self.dealer = False
-        self.stack = "${:,.2f}".format(stack)
+        self.dealer = False        
+        self.stack = stack
+
+        self.pre_flop_bet = 0
+        self.post_flop_bet = 0
+        self.post_turn_bet = 0
+        self.post_river_bet = 0
+
         # Create a [hand_ranking] attribute that will allow players...
         # to compare the strength of their hand against opponents.
         self.hand_ranking = 0
@@ -56,6 +63,27 @@ class Player(object):
             self.post_river_hand.append(card)
         self.post_river_hand.append(deck.river[0])
         return self
+
+    # Create a function to convert a given list of Card objects...
+    # into JSON format. 
+    def jsonify_cards(self, list_of_cards):
+        suits = []
+        vals = []
+
+        for card in list_of_cards:
+            vals.append(card.value)
+            suits.append(card.suit)
+
+        restructured_hand = []
+
+        # Use the [zip()] method to merge [vals] and [suits]...
+        # Each "zipped" item, that is appended to [restructured_hand]...
+        # is a tuple containing one element from [vals] + one from [suits]...
+        # at an equivalent index --> (e.g., ('8', 's')).
+        for item in zip(vals, suits):
+            restructured_hand.append(item)
+
+        return json.dumps(restructured_hand)
 
     def blind(self, amount):
         if self.dealer == False:
@@ -102,6 +130,7 @@ class Deck(object):
         self.river = []
         # Create a [community_card(s)] list to capture *all* of the community cards.
         self.community_cards = []
+
         # Execute the [build()] function to generate a 52-card deck.
         self.build()
 
@@ -120,6 +149,21 @@ class Deck(object):
         for i in range(len(self.cards) - 1, 0, -1):
             r = random.randint(0, i)
             self.cards[i], self.cards[r] = self.cards[r], self.cards[i]
+
+    def jsonify_cards(self, list_of_cards):
+        suits = []
+        vals = []
+
+        for card in list_of_cards:
+            vals.append(card.value)
+            suits.append(card.suit)
+
+        restructured_hand = []
+
+        for item in zip(vals, suits):
+            restructured_hand.append(item)
+
+        return json.dumps(restructured_hand)
 
     def deal_card(self):
         return self.cards.pop()
@@ -149,18 +193,3 @@ class Deck(object):
         for card in self.river:
             self.community_cards.append(card)
         return self.river
-
-    def reset_deck(self):
-        self.cards.clear()
-        Deck.build()
-        Deck.shuffle()
-
-
-class Pot(object):
-    def __init__(self, players):
-        # Create a [players] list to keep track of the...
-        # players involved in each pot.
-        self.players = []
-        # Create a [chips] attribute to keep track of the...
-        # number of chips involved in each pot.
-        self.chips = 0

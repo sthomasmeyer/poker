@@ -21,12 +21,16 @@ for card in player_one.hole_cards:
 for card in player_two.hole_cards:
     print(f"Sacks: {card.value} of {card.suit}")
 
+print(f"Sacks' Pre-flop Hand: {player_two.jsonify_cards(player_two.hole_cards)}")
+
 new_deck.flop_protocol()
 for player in players:
     player.incorporate_flop(new_deck)
 
 for card in new_deck.flop:
     print(f"flop: {card.value} of {card.suit}")
+
+print(f"FLOP: {new_deck.jsonify_cards(new_deck.flop)}")
 
 new_deck.turn_protocol()
 for player in players:
@@ -39,6 +43,10 @@ for player in players:
     player.incorporate_river(new_deck)
 
 print(f"river: {new_deck.river[0].value} of {new_deck.river[0].suit}")
+
+print(
+    f"Chamath's Post-river Hand: {player_one.jsonify_cards(player_one.post_river_hand)}"
+)
 
 ### END of the [test] classes code... COMMENCE hand-rankings ###
 
@@ -458,7 +466,6 @@ def check_pair(hand):
             + card_list[4] / 100000
         )
         return score
-
 
 for player in players:
     player.hand_ranking = check_straight_flush(player.post_river_hand)

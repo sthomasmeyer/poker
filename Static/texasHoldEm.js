@@ -1,11 +1,10 @@
-// const BASE_URL = 'http://127.0.0.1:5000';
+const preFlopCallButton = document.getElementById('call-pre-flop-btn');
 
-const communityCards = document.getElementById('community-cards');
+const revealFlopButton = document.getElementById('reveal-flop-btn');
+const revealTurnButton = document.getElementById('reveal-turn-btn');
+const revealRiverButton = document.getElementById('reveal-river-btn');
 
-const flopButton = document.getElementById('flop-btn');
-const turnButton = document.getElementById('turn-btn');
-const riverButton = document.getElementById('river-btn');
-
+// Within
 const showdownDiv = document.getElementById('showdown');
 const showdownWinButton = document.getElementById('showdown-win-btn');
 const showdownLossButton = document.getElementById('showdown-loss-btn');
@@ -18,72 +17,208 @@ const river = document.getElementById('river');
 const oppsHand = document.getElementById('opps-hand');
 
 const foldButton = document.getElementById('fold-btn');
-let callPreFlopButton = document.getElementById('call-pre-flop-btn');
 
-const playerScore = document.getElementById('player-score');
-const oppsScore = document.getElementById('opps-score');
+// The following variables capture elements related to...
+// the active-user.
+const userChipCount = document.getElementById('user-chip-count');
+const userInitialStack = document.getElementById('user-initial-stack');
+const userCommitedChips = document.getElementById('user-commited');
+const userBlind = document.getElementById('user-blind');
+const userScore = document.getElementById('user-score');
 
-callPreFlopButton.onclick = function keepPlaying(evt) {
-  evt.preventDefault();
-  callPreFlopButton.remove();
-  foldButton.hidden = true;
-  flopButton.hidden = false;
+// The following variables capture elements related to...
+// the community cards (+) the pot.
+const communityCards = document.getElementById('community-cards');
+const pot = document.getElementById('pot');
+const sumOfBlinds = document.getElementById('sum-of-blinds');
+
+// The following variables capture elements related to...
+// the ai-opponent.
+const oppHand = document.getElementById('ai-opp-hand');
+const oppChipCount = document.getElementById('ai-opp-chip-count');
+const oppCommitedChips = document.getElementById('ai-opp-commited');
+const oppBlind = document.getElementById('ai-opp-blind');
+const oppScore = document.getElementById('ai-opp-score');
+
+window.onload = function action() {
+  console.log(`User (blind) Chips Commited: ${userBlind.innerText}`);
+  console.log(`AI (blind) Chips Commited: ${oppBlind.innerText}`);
+  if (userBlind.innerText > oppBlind.innerText) {
+    console.log('The action is on Cortana.');
+    async function cortanaPreFlopDecision() {
+      try {
+        const res = await axios.get('/texas_hold_em/ai_pre_flop_action');
+        console.log(`AI Chips Commited: ${res.data}`);
+        sumOfBlinds.remove();
+        oppBlind.remove();
+        let updateCommited = document.createElement('td');
+        let updatePot = document.createElement('td');
+        updateCommited.innerText = `${res.data}`;
+        updatePot.innerText = res.data * 2;
+        oppCommitedChips.append(updateCommited);
+        pot.append(updatePot);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    cortanaPreFlopDecision();
+    revealFlopButton.hidden = false;
+  } else {
+    console.log('The action is on the active user.');
+  }
 };
 
-flopButton.onclick = function revealFlop(evt) {
+preFlopCallButton.onclick = function userAction(evt) {
   evt.preventDefault();
-  flop.hidden = false;
-  flopButton.remove();
+
+  preFlopCall();
+  foldButton.hidden = true;
+  revealFlopButton.hidden = false;
+
+  async function preFlopCall() {
+    try {
+      const res = await axios.get('/texas_hold_em/user_pre_flop_call');
+      console.log(`User Chips Commited: ${res.data}`);
+      userBlind.remove();
+      let updateCommited = document.createElement('td');
+      updateCommited.innerText = `${res.data}`;
+      userCommitedChips.append(updateCommited);
+      updatePot();
+      updateUserStack();
+
+      async function updatePot() {
+        try {
+          const res = await axios.get('/texas_hold_em/update/pot');
+          console.log(`Updated Pot Val: ${res.data}`);
+          sumOfBlinds.remove();
+          let updatePot = document.createElement('td');
+          updatePot.innerText = res.data;
+          pot.append(updatePot);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      async function updateUserStack() {
+        try {
+          const res = await axios.get('/texas_hold_em/update/user_chip_count');
+          console.log(`Updated User Stack: ${res.data}`);
+          userInitialStack.remove();
+          let updateUserStack = document.createElement('td');
+          updateUserStack.innerText = res.data;
+          userChipCount.append(updateUserStack);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+};
+
+revealFlopButton.onclick = function revealFlop(evt) {
+  evt.preventDefault();
+
+  getFlop();
+  async function getFlop() {
+    try {
+      const res = await axios.get('/texas_hold_em/flop');
+      console.log(`FLOP: ${res.data}`);
+      const flop = [];
+      res.data.forEach((element) => flop.push(element.join().replace(',', '')));
+      console.log(flop);
+      displayFlop = document.createElement('td');
+      let i = 0;
+      for (i = 0; i < flop.length; i++) {
+        displayFlop.innerText += `${flop[i]} `;
+      }
+      communityCards.append(displayFlop);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  revealFlopButton.remove();
   newBtn = document.createElement('button');
   newBtn.setAttribute('id', 'call-post-flop-btn');
   newBtn.innerText = 'Call';
-  document.getElementById('options').append(newBtn);
+  document.getElementById('user-options').append(newBtn);
   let callPostFlopButton = document.getElementById('call-post-flop-btn');
   foldButton.hidden = false;
 
   callPostFlopButton.onclick = function keepPlaying(evt) {
     evt.preventDefault();
-    console.log('TEST');
     callPostFlopButton.remove();
     foldButton.hidden = true;
-    turnButton.hidden = false;
+    revealTurnButton.hidden = false;
   };
 };
 
-turnButton.onclick = function revealTurn(evt) {
+revealTurnButton.onclick = function revealTurn(evt) {
   evt.preventDefault();
-  turn.hidden = false;
-  turnButton.remove();
+
+  getTurn();
+  async function getTurn() {
+    try {
+      const res = await axios.get('/texas_hold_em/turn');
+      console.log(`TURN: ${res.data}`);
+      const turn = [];
+      res.data.forEach((element) => turn.push(element.join().replace(',', '')));
+      displayTurn = document.createElement('td');
+      displayTurn.innerText = `${turn} `;
+      communityCards.append(displayTurn);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  revealTurnButton.remove();
   newBtn = document.createElement('button');
   newBtn.setAttribute('id', 'call-post-turn-btn');
   newBtn.innerText = 'Call';
-  document.getElementById('options').append(newBtn);
+  document.getElementById('user-options').append(newBtn);
   let callPostTurnButton = document.getElementById('call-post-turn-btn');
   foldButton.hidden = false;
 
   callPostTurnButton.onclick = function keepPlaying(evt) {
     evt.preventDefault();
-    console.log('TESTING...');
     callPostTurnButton.remove();
     foldButton.hidden = true;
-    riverButton.hidden = false;
+    revealRiverButton.hidden = false;
   };
 };
 
-riverButton.onclick = function revealRiver(evt) {
+revealRiverButton.onclick = function revealRiver(evt) {
   evt.preventDefault();
-  river.hidden = false;
-  riverButton.remove();
+
+  getRiver();
+  async function getRiver() {
+    try {
+      const res = await axios.get('/texas_hold_em/river');
+      console.log(`RIVER: ${res.data}`);
+      const river = [];
+      res.data.forEach((element) =>
+        river.push(element.join().replace(',', ''))
+      );
+      displayRiver = document.createElement('td');
+      displayRiver.innerText = river;
+      communityCards.append(displayRiver);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  revealRiverButton.remove();
   newBtn = document.createElement('button');
   newBtn.setAttribute('id', 'call-post-river-btn');
   newBtn.innerText = 'Call';
-  document.getElementById('options').append(newBtn);
+  document.getElementById('user-options').append(newBtn);
   let callPostRiverButton = document.getElementById('call-post-river-btn');
   foldButton.hidden = false;
 
   callPostRiverButton.onclick = function finishTheHand(evt) {
     evt.preventDefault();
-    console.log('1, 2, 3');
     callPostRiverButton.remove();
     foldButton.hidden = true;
     showdownDiv.hidden = false;
@@ -95,17 +230,64 @@ if (showdownWinButton != null) {
     evt.preventDefault();
     setTimeout(() => {
       showdownWinForm.submit();
-    }, 3000);
+    }, 1000);
     showdownWinButton.remove();
-    oppsHand.hidden = false;
-    playerScore.hidden = false;
-    oppsScore.hidden = false;
+
+    async function getOppCards() {
+      try {
+        const res = await axios.get('/texas_hold_em/ai_opp_cards');
+        console.log(`Opp Hand: ${res.data}`);
+        const computerHand = [];
+        res.data.forEach((element) =>
+          computerHand.push(element.join().replace(',', ''))
+        );
+        console.log(computerHand);
+        displayHand = document.createElement('td');
+        let i = 0;
+        for (i = 0; i < computerHand.length; i++) {
+          displayHand.innerText += `${computerHand[i]} `;
+        }
+        oppHand.append(displayHand);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getOppCards();
+
+    async function getUserScore() {
+      try {
+        const res = await axios.get('/texas_hold_em/user_score');
+        console.log(`User Score: ${res.data}`);
+        displayScore = document.createElement('td');
+        displayScore.innerText = `${res.data}`;
+        userScore.append(displayScore);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getUserScore();
+
+    async function getOppScore() {
+      try {
+        const res = await axios.get('/texas_hold_em/computer_opp_score');
+        console.log(`Opp Score: ${res.data}`);
+        displayScore = document.createElement('td');
+        if (res.data > 1) {
+          displayScore.innerText = res.data;
+          oppScore.append(displayScore);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getOppScore();
+
     setTimeout(() => {
       alert(`
-      You've won this hand and $15
+      You've won this hand
       Press 'OK' to see the next hand
       `);
-    }, 1000);
+    }, 500);
   };
 }
 
@@ -114,17 +296,13 @@ if (showdownLossButton != null) {
     evt.preventDefault();
     setTimeout(() => {
       showdownLossForm.submit();
-    }, 3000);
+    }, 1000);
     showdownLossButton.remove();
-    oppsHand.hidden = false;
-    playerScore.hidden = false;
-    oppsScore.hidden = false;
     setTimeout(() => {
       alert(`
-      You've lost this hand and $10
-      Remember, if you fold before the showdown you only lose $5
+      You've lost this hand
       Press 'OK' to see the next hand
       `);
-    }, 1000);
+    }, 500);
   };
 }

@@ -9,100 +9,79 @@ that is meant to be manipulated by its "children", we must first write... -->
 
   <h1>Texas Hold'em</h1>
   <p>You are playing heads-up against a computer opponent. Good luck!</p>
-  <ul id="instructions">
-    <li>If you win the hand, you receive $15</li>
-    <li>If you lose the hand, you lose $10</li>
-    <li>If you fold before the showdown, you lose $5</li>
-  </ul>
 
-  <div id="player-one">
-    <div><strong>{{ players[0].name }}</strong></div>
-    <div>Chip Count: {{ players[0].stack }}</div>
-    <div>Hand: [{% for card in players[0].hole_cards %} {{ card.reveal() }} {% endfor %}]</div>
-    <div hidden id="player-score">
-      {% if players[0].hand_ranking < 15 %}
-        High-card: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 15 and players[0].hand_ranking < 30 %}
-        Pair: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 30 and players[0].hand_ranking < 45 %}
-        Two-pair: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 45 and players[0].hand_ranking < 60 %}
-        Three-of-a-kind: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 60 and players[0].hand_ranking < 75 %}
-        Straight: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 75 and players[0].hand_ranking < 90 %}
-        Flush: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 90 and players[0].hand_ranking < 105 %}
-        Full-house: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 105 and players[0].hand_ranking < 120 %}
-        Four-of-a-kind: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking > 120 and players[0].hand_ranking < 135 %}
-        Straight-flush: {{ players[0].hand_ranking }}
-      {% elif players[0].hand_ranking == 135 %}
-        ROYAL FLUSH: {{ players[0].hand_ranking }}
-      {% endif %}
-    </div>
-  </div>
+  <table id="active-user">
+    <tr>
+      <th>{{ players[0].name }}{% if players[0].dealer %} (dealer) {% endif %}</th>
+    </tr>
+    <tr id="user-chip-count">
+      <th>Chip Count: </th>
+        <td id="user-initial-stack">{{ players[0].stack }}</td>
+    </tr>
+    <tr>
+      <th>Hand: </th>
+        <td>{% for card in players[0].hole_cards %} {{ card.reveal() }} {% endfor %}</td>
+    </tr>
+    <tr id="user-commited">
+      <th>Commited Chips: </th>
+        <td id="user-blind">{{ players[0].pre_flop_bet }}</td>
+    </tr>
+    <tr id="user-score">
+      <th>Score: </th>
+    </tr>
+    <tr id="user-options">
+      <th>Action: </th>
+        <td><form method="POST"><button id="call-pre-flop-btn">Call</button></form></td>
+        <td><form method="POST">{% include "_form.html" %} <button>Raise</button></form></td>
+        <td><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
+        <td><button hidden id="reveal-flop-btn">Reveal Flop</button></td>
+        <td><button hidden id="reveal-turn-btn">Reveal Turn</button></td>
+        <td><button hidden id="reveal-river-btn">Reveal River</button></td>
+        <td hidden id="showdown">
+          {% if players[0].hand_ranking > players[1].hand_ranking %}
+          <form id="showdown-win-form" action="/texas_hold_em/win/{{ user.id }}">
+            <button id="showdown-win-btn">Showdown</button>
+          </form>
+          {% elif players[1].hand_ranking > players[0].hand_ranking %}
+          <form id="showdown-loss-form" action="/texas_hold_em/loss/{{ user.id }}">
+            <button id="showdown-loss-btn">Showdown</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+  </table>
   <br>
-  <div id="board">
-    <div id="community-cards">
-      Community Cards:
-      <span hidden id="flop">[{% for card in flop %} {{ card.reveal() }} {% endfor %}]</span>
-      <span hidden id="turn">[{{ turn[0].reveal() }}]</span>
-      <span hidden id="river">[{{ river[0].reveal() }}]</span>
-    </div>
-  </div>
+  <table id="board">
+    <tr id="community-cards">
+      <th>Community Cards: </th>
+    </tr>
+    <tr id="pot">
+      <th>Pot: </th>
+        <td id="sum-of-blinds">{{ players[0].pre_flop_bet + players[1].pre_flop_bet }}</td>
+    </tr>
+  </table>
   <br>
-  <div id="computer-opp">
-    <div>{{ players[1].name }}</div>
-    <div>Chip Count: {{ players[1].stack }}</div>
-    <div hidden id="opps-hand">Hand: [{% for card in players[1].hole_cards %} {{ card.reveal() }} {% endfor %}]</div>
-    <div hidden id="opps-score">
-      {% if players[1].hand_ranking < 15 %}
-        High-card: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 15 and players[1].hand_ranking < 30 %}
-        Pair: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 30 and players[1].hand_ranking < 45 %}
-        Two-pair: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 45 and players[1].hand_ranking < 60 %}
-        Three-of-a-kind: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 60 and players[1].hand_ranking < 75 %}
-        Straight: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 75 and players[1].hand_ranking < 90 %}
-        Flush: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 90 and players[1].hand_ranking < 105 %}
-        Full-house: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 105 and players[1].hand_ranking < 120 %}
-        Four-of-a-kind: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking > 120 and players[1].hand_ranking < 135 %}
-        Straight-flush: {{ players[1].hand_ranking }}
-      {% elif players[1].hand_ranking == 135 %}
-        ROYAL FLUSH: {{ players[1].hand_ranking }}
-      {% endif %}
-    </div>
-  </div>
-  <br>
-  <div id="options">
-    <form action="/texas_hold_em/fold/{{ user.username }}"><button id="fold-btn">Fold</button></form>
-    <button id="call-pre-flop-btn">Call</button>
-  </div>
+  <table id="ai-opp">
+    <tr>
+      <th>{{ players[1].name }}{% if players[1].dealer %} (dealer) {% endif %}</th>
+    </tr>
+    <tr id="ai-opp-chip-count">
+      <th>Chip Count: </th>
+        <td>{{ players[1].stack }}</td>
+    </tr>
+    <tr id="ai-opp-hand">
+      <th>Hand: </th>
+    </tr>
+    <tr id="ai-opp-commited">
+      <th>Commited Chips: </th>
+        <td id="ai-opp-blind">{{ players[1].pre_flop_bet }}</td>
+    </tr>
+    <tr id="ai-opp-score">
+      <th>Score: </th>
+    </tr>
+  </table>
 
-  <button hidden id="flop-btn">Reveal Flop</button>
-  <button hidden id="turn-btn">Reveal Turn</button>
-  <button hidden id="river-btn">Reveal River</button>
-
-  <div hidden id="showdown">
-    {% if players[0].hand_ranking > players[1].hand_ranking %}
-    <form id="showdown-win-form" action="/texas_hold_em/win/{{ user.username }}">
-      <button id="showdown-win-btn">Showdown</button>
-    </form>
-    {% elif players[1].hand_ranking > players[0].hand_ranking %}
-    <form id="showdown-loss-form" action="/texas_hold_em/loss/{{ user.username }}">
-      <button id="showdown-loss-btn">Showdown</button>
-    </form>
-    {% endif %}
-  </div>
-
-  <!-- <script src="https://unpkg.com/axios/dist/axios.js"></script> -->
+  <script src="https://unpkg.com/jquery"></script>
+  <script src="https://unpkg.com/axios/dist/axios.js"></script>
   <script src="/static/texasHoldEm.js"></script>
 {%endblock%}
