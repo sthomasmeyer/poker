@@ -32,17 +32,13 @@ that is meant to be manipulated by its "children", we must first write... -->
     <tr id="user-options">
       <th>Action: </th>
 
-        <!-- If the active-user is the dealer, then they begin the game...
-        in the small blind, and thus have the option to call. Otherwise...
-        their options depend on decisions made by their ai-opponent. -->
-
-        <td><form method="POST"><button id="call-pre-flop-btn">Call</button></form></td>
-
-        
-        <!-- Initially (at least in a heads-up game), players always...
-        have the option to raise. However, in each round of betting...
-        there is a maximum of one initial bet followed by three raises. -->
-        <td><form method="POST">{% include "_form.html" %} <button>Raise</button></form></td>
+        <td id="pre-flop-check-or-call">
+          {% if players[1].dealer %}
+          <form method="POST"><button id="check-pre-flop-btn">Check</button></form>
+          {% elif players[0].dealer %}
+          <form method="POST"><button id="call-pre-flop-btn">Call</button></form>
+          {% endif %}
+        </td>
 
         <!-- In a game of Texas Hold'em, users always have the option...
         to fold, whether or not it makes sense to do so. -->

@@ -9,8 +9,8 @@ that is meant to be manipulated by its "children", we must first write... -->
 
   <h3>Welcome {{ user.username }}.</h3>
 
-  <form action="/texas_hold_em/{{ user.id }}">
-    <button id="begin-texas-hold-em">Play Texas Hold 'Em</button>
+  <form action="/update/user/{{ user.id }}">
+    <button id="update" formmethod="GET">Update Account Info</button>
   </form>
 
   <form action="/delete/user/{{ user.id }}">

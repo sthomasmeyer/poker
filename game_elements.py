@@ -95,14 +95,6 @@ class Player(object):
             # will pay the small blind.
             pass
 
-    # def check(self):
-
-    # def raise(self, amount):
-
-    # def fold(self):
-
-    # def call(self, amount):
-
     def show_hole_cards(self):
         for card in self.hole_cards:
             card.reveal()

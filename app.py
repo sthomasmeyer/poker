@@ -1,6 +1,9 @@
 # Import Python's [os] module, which provides functions for interacting w/ the operating system.
 import os
 
+# Import Python's [importLib] module.
+import importlib
+
 # Import Python's [json] module.
 import json
 
@@ -15,13 +18,23 @@ from flask import Flask, jsonify, request, render_template, redirect, flash, ses
 from models import bcrypt, db, connect_db, User, TexasHoldEm, TexasHoldEmPot
 
 # Import the forms you've created from the [forms.py] file.
-from forms import UserLoginForm, CreateAccountForm, TexasHoldEmBet
+from forms import (
+  UserLoginForm, 
+  CreateAccountForm, 
+  UpdateAccountForm,
+)
 
 # Import the classes you've created from the [game_elements.py] file.
 from game_elements import Player, Deck, Card
 
 # Import the classes you've created from the [game_elements.py] file.
 from hand_rankings import check_straight_flush, check_pair
+
+# Import sensitive information from the [secrets.py] file.
+import secrets
+importlib.reload(secrets)
+new_secret_key = secrets.SUPER_SECRET_KEY
+new_db_connection = secrets.LOCAL_SQL_DB
 
 app = Flask(__name__)
 
@@ -32,9 +45,7 @@ app = Flask(__name__)
 # which will connect this application to a local SQL database...
 # format --> "postgresql://[user:[password]@[host-name]:[port number]/database_name]"
 # It is important to do this *before* calling the [connect_db(app)] function.
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL", "postgresql://postgres:batman@localhost:5432/poker"
-)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", new_db_connection)
 
 # If Flask-SQLAlchemy's Track Modifications feature is set to [True]...
 # then it will track modifications of objects and emit signals...
@@ -50,7 +61,7 @@ app.config["SQLALCHEMY_ECHO"] = True
 # Use the [os.environ] command to access the environmental variables...
 # then, employ Python's [get()] method to capture the value associated...
 # w/ "SECRET_KEY". Note, a default value -- "secret" -- is set as well.
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "secret")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", new_secret_key)
 
 # Call this function from [models.py] to connect the database we've selected.
 connect_db(app)
@@ -122,7 +133,10 @@ def register():
     form = CreateAccountForm()
 
     if form.validate_on_submit():
-        data = {k: v for k, v in form.data.items() if k != "csrf_token"}
+        data = {
+          k: v 
+          for k, v in form.data.items() 
+          if k != "csrf_token" and k != "confirm_password"}
 
         for k in data:
             if k != "csrf_token" and k != "password":
@@ -184,6 +198,126 @@ def successful_login(user_id):
     return render_template("successful_login.html", user=user)
 
 
+@app.route("/update/user/<int:user_id>", methods=["GET", "POST"])
+def update(user_id):
+    user = User.query.get_or_404(user_id)
+
+    if session["user_id"] != user_id:
+        flash("Access denied.")
+        return redirect("/")
+
+    form = UpdateAccountForm()
+
+    if form.validate_on_submit():
+
+        users = User.query.all()
+
+        if request.form["username"] != user.username:
+            for existing_user in users:
+                if existing_user.username == request.form["username"]:
+                    flash("An account associated with that username already exists.")
+                    return redirect(f"/update/user/{user_id}")
+
+        if request.form["email"] != user.email:
+            for existing_user in users:
+                if existing_user.email == request.form["email"]:
+                    flash(
+                        "An account associated with that email address already exists."
+                    )
+                    return redirect(f"/update/user/{user_id}")
+
+        if (
+            request.form["username"] == user.username
+            and request.form["email"] == user.email
+        ):
+            if (
+                bcrypt.check_password_hash(user.password, request.form["password"])
+                == True
+            ):
+                flash("username (+) email address (+) password unaltered")
+                return redirect(f"/user/{user_id}")
+            else:
+                updated_pwd = bcrypt.generate_password_hash(request.form["password"])
+                updated_utf8_pwd = updated_pwd.decode("utf8")
+                user.password = updated_utf8_pwd
+                db.session.commit()
+                flash("username (+) email address unaltered")
+                flash("password updated")
+                return redirect(f"/user/{user_id}")
+
+        if (
+            request.form["email"] == user.email
+            and request.form["username"] != user.username
+        ):
+            if (
+                bcrypt.check_password_hash(user.password, request.form["password"])
+                == True
+            ):
+                user.username = request.form["username"]
+                db.session.commit()
+                flash("username updated")
+                flash("email address (+) password unaltered")
+                return redirect(f"/user/{user_id}")
+            else:
+                updated_pwd = bcrypt.generate_password_hash(request.form["password"])
+                updated_utf8_pwd = updated_pwd.decode("utf8")
+                user.password = updated_utf8_pwd
+                user.username = request.form["username"]
+                db.session.commit()
+                flash("username (+) password updated")
+                flash("email address unaltered")
+                return redirect(f"/user/{user_id}")
+
+        if (
+            request.form["username"] == user.username
+            and request.form["email"] != user.email
+        ):
+            if (
+                bcrypt.check_password_hash(user.password, request.form["password"])
+                == True
+            ):
+                user.email = request.form["email"]
+                db.session.commit()
+                flash("email address updated")
+                flash("username (+) password unaltered")
+                return redirect(f"/user/{user_id}")
+            else:
+                updated_pwd = bcrypt.generate_password_hash(request.form["password"])
+                updated_utf8_pwd = updated_pwd.decode("utf8")
+                user.password = updated_utf8_pwd
+                user.email = request.form["email"]
+                db.session.commit()
+                flash("email address (+) password updated")
+                flash("username unaltered")
+                return redirect(f"/user/{user_id}")
+
+        if (
+            request.form["username"] != user.username
+            and request.form["email"] != user.email
+        ):
+            if (
+                bcrypt.check_password_hash(user.password, request.form["password"])
+                == True
+            ):
+                user.username = request.form["username"]
+                user.email = request.form["email"]
+                db.session.commit()
+                flash("username (+) email address updated")
+                flash("password unaltered")
+                return redirect(f"/user/{user_id}")
+            else:
+                updated_pwd = bcrypt.generate_password_hash(request.form["password"])
+                updated_utf8_pwd = updated_pwd.decode("utf8")
+                user.password = updated_utf8_pwd
+                user.email = request.form["email"]
+                user.username = request.form["username"]
+                db.session.commit()
+                flash("username (+) email address (+) password updated")
+                return redirect(f"/user/{user_id}")
+
+    return render_template("/update_account.html", user=user, form=form)
+
+
 @app.route("/delete/user/<int:user_id>", methods=["POST"])
 def destroy(user_id):
     user = User.query.get_or_404(user_id)
@@ -214,8 +348,6 @@ def play_texas_hold_em(user_id):
     saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
     for hand in saved_user_hands:
         db.session.delete(hand)
-
-    form = TexasHoldEmBet()
 
     # Establish a [players] variable and set it equal to...
     # an empty list. Use it to store each instance of the...
@@ -338,7 +470,6 @@ def play_texas_hold_em(user_id):
     return render_template(
         "texas_hold_em.html",
         user=user,
-        form=form,
         players=players,
         flop=flop,
         turn=turn,
@@ -414,33 +545,70 @@ def ai_pre_flop_action():
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
-    ai_json_hand = saved_hand.computer_opp_cards
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
+    # Capture the ai-opp's hand from the db. Then, create two instances...
+    # of the [Card]-object w/ the captured info (+) store them in a list.
+    ai_json_hand = saved_hand.computer_opp_cards
     ai_hand = []
     for card in json.loads(ai_json_hand):
         ai_hand.append(Card(card[1], card[0]))
 
-    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
-
+    # Rank the ai-opp's pre-flop hand. The rank will be a number from...
+    # 3.02 (low) to 29 (high)
     ai_hand_rank = check_pair(ai_hand)
 
-    if ai_hand_rank > 13:
-        ai_commited_chips = int(active_pot.ai_pre_flop)
-        user_commited_chips = int(active_pot.user_pre_flop)
+    # This [if]-statement will trigger the ai-decision path for a hand...
+    # ranked between [8] and [12]. Note, the [11] indicates "Jack-high".
+    if ai_hand_rank >= 8 and ai_hand_rank <= 12:
+        # Generate a random number from 1-100.
+        rnum = random.randint(1, 100)
+        # If this random number is less-than or equal-to [70], then...
+        # the ai-opp will call. In other words, the ai-opp will call...
+        # 70% of the time.
+        if rnum <= 70:
+            ai_commited_chips = int(active_pot.ai_pre_flop)
+            user_commited_chips = int(active_pot.user_pre_flop)
 
-        difference = user_commited_chips - ai_commited_chips
-        ai_commited_chips += difference
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
 
-        ai_stack -= difference
-        session["ai_stack"] = ai_stack
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
 
-        active_pot.ai_pre_flop = json.dumps(ai_commited_chips)
-        active_pot.total_chips = json.dumps(ai_commited_chips + user_commited_chips)
-        db.session.commit()
+            active_pot.ai_pre_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(ai_commited_chips + user_commited_chips)
+            db.session.commit()
 
-        return active_pot.ai_pre_flop
-    else: 
-        return json.dumps("xXx")
+            return active_pot.ai_pre_flop
+        else:
+            return json.dumps("xoxo")
+
+    # This [if]-statement will trigger the ai-decision path for a hand...
+    # ranked [12], "Queen-high", or better.
+    elif ai_hand_rank >= 12:
+        rnum = random.randint(1, 100)
+        # The ai-opp will call 90% of the time.
+        if rnum <= 90:
+            ai_commited_chips = int(active_pot.ai_pre_flop)
+            user_commited_chips = int(active_pot.user_pre_flop)
+
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_pre_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(ai_commited_chips + user_commited_chips)
+            db.session.commit()
+
+            return active_pot.ai_pre_flop
+        else:
+            return json.dumps("xoxo")
+
+    elif ai_hand_rank < 8:
+        return json.dumps("xoxo")
 
 
 @app.route("/texas_hold_em/user_pre_flop_call", methods=["GET", "POST"])

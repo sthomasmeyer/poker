@@ -1,3 +1,6 @@
+// The following variables capture elements related to...
+// The active-user's pre-flop options.
+const preFlopCheckButton = document.getElementById('check-pre-flop-btn');
 const preFlopCallButton = document.getElementById('call-pre-flop-btn');
 
 const revealFlopButton = document.getElementById('reveal-flop-btn');
@@ -40,29 +43,121 @@ const oppCommitedChips = document.getElementById('ai-opp-commited');
 const oppBlind = document.getElementById('ai-opp-blind');
 const oppScore = document.getElementById('ai-opp-score');
 
-// This [action()] function that is triggered "onload"...
-// first
+// This [action()] function is triggered "onload"...
 window.onload = function action() {
   console.log(`User (blind) Chips Commited: ${userBlind.innerText}`);
   console.log(`AI (blind) Chips Commited: ${oppBlind.innerText}`);
+
+  // If the ai-opp is playing from the small-blind position...
+  // then they will be the first player to act.
   if (userBlind.innerText > oppBlind.innerText) {
     console.log('The action is on Cortana.');
+
+    // This asynchronous function makes a GET request...
+    // one of this application's "hidden" URLs that...
+    // triggers the ai-opp's decision making process.
     async function cortanaPreFlopDecision() {
       try {
         const res = await axios.get('/texas_hold_em/ai_pre_flop_action');
-        console.log(isNaN(res.data));
+        console.log(`Cortana decided to fold: ${isNaN(res.data)}`);
 
+        // If the GET request produces anything other than...
+        // a number, specifically the number of chips...
+        // that the ai-opp has decided to bet. Then they...
+        // have chosen to fold this hand.
         if (isNaN(res.data)) {
           window.location = '/texas_hold_em/ai_opp_fold';
         }
 
         console.log(`AI Chips Commited: ${res.data}`);
+
+        // Remove the DOM-element associated w/ the...
+        // ai-opp's blind:
         oppBlind.remove();
+        // Replace it with the updated number of chips...
+        // they've chosen to commit:
         let updateCommited = document.createElement('td');
         updateCommited.innerText = `${res.data}`;
         oppCommitedChips.append(updateCommited);
+
+        // Execute [updatePot()] + [updateOppStack()] functions.
         updatePot();
         updateOppStack();
+
+        // The total number of chips in the pot is impacted...
+        // by the ai-opp's decision, so it must be updated.
+        async function updatePot() {
+          try {
+            const res = await axios.get('/texas_hold_em/update/pot');
+            console.log(`Updated Pot Val: ${res.data}`);
+
+            // Remove the DOM-element associated w/ the...
+            // initial value of the pot:
+            sumOfBlinds.remove();
+            // Replace it with the updated value:
+            let updatePot = document.createElement('td');
+            updatePot.innerText = res.data;
+            pot.append(updatePot);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        // The number of chips in the ai-opp's stack is...
+        // impacted by their decision, so it must be updated.
+        async function updateOppStack() {
+          try {
+            const res = await axios.get(
+              '/texas_hold_em/update/ai_opp_chip_count'
+            );
+            console.log(`Updated Opp Stack: ${res.data}`);
+            // Remove the DOM-element associated w/ the...
+            // initial value of the ai-opp's stack:
+            oppInitialStack.remove();
+            // Replace it with the updated value:
+            let updateOppStack = document.createElement('td');
+            updateOppStack.innerText = res.data;
+            oppChipCount.append(updateOppStack);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    cortanaPreFlopDecision();
+  } else {
+    console.log('The action is on the active user.');
+  }
+};
+
+// This [if]-statement is designed to check whether...
+// or not the active-user has the option to call.
+if (preFlopCallButton != null) {
+  preFlopCallButton.onclick = function userAction(evt) {
+    evt.preventDefault();
+
+    // Execute the asynchronous [preFlopCall()] function.
+    preFlopCall();
+
+    // If the user chooses to call, then take away the...
+    // option to fold, and display the [revealFlopButton].
+    foldButton.hidden = true;
+    // Don't forget to delete this [preFlopCallbutton].
+    preFlopCallButton.remove();
+    revealFlopButton.hidden = false;
+
+    async function preFlopCall() {
+      try {
+        const res = await axios.get('/texas_hold_em/user_pre_flop_call');
+        console.log(`User Chips Commited: ${res.data}`);
+        userBlind.remove();
+        let updateCommited = document.createElement('td');
+        updateCommited.innerText = `${res.data}`;
+        userCommitedChips.append(updateCommited);
+        updatePot();
+        updateUserStack();
 
         async function updatePot() {
           try {
@@ -77,16 +172,16 @@ window.onload = function action() {
           }
         }
 
-        async function updateOppStack() {
+        async function updateUserStack() {
           try {
             const res = await axios.get(
-              '/texas_hold_em/update/ai_opp_chip_count'
+              '/texas_hold_em/update/user_chip_count'
             );
-            console.log(`Updated Opp Stack: ${res.data}`);
-            oppInitialStack.remove();
-            let updateOppStack = document.createElement('td');
-            updateOppStack.innerText = res.data;
-            oppChipCount.append(updateOppStack);
+            console.log(`Updated User Stack: ${res.data}`);
+            userInitialStack.remove();
+            let updateUserStack = document.createElement('td');
+            updateUserStack.innerText = res.data;
+            userChipCount.append(updateUserStack);
           } catch (error) {
             console.log(error);
           }
@@ -95,61 +190,22 @@ window.onload = function action() {
         console.log(error);
       }
     }
-    cortanaPreFlopDecision();
+  };
+}
+
+// This [if]-statement is designed to check whether...
+// or not the active-user has the option to check.
+if (preFlopCheckButton != null) {
+  preFlopCheckButton.onclick = function userAction(evt) {
+    evt.preventDefault();
+    // If the user chooses to check, then take away the...
+    // option to fold, and display the [revealFlopButton].
+    foldButton.hidden = true;
+    // Don't forget to delete this [preFlopCheckbutton].
+    preFlopCheckButton.remove();
     revealFlopButton.hidden = false;
-  } else {
-    console.log('The action is on the active user.');
-  }
-};
-
-preFlopCallButton.onclick = function userAction(evt) {
-  evt.preventDefault();
-
-  preFlopCall();
-  foldButton.hidden = true;
-  revealFlopButton.hidden = false;
-
-  async function preFlopCall() {
-    try {
-      const res = await axios.get('/texas_hold_em/user_pre_flop_call');
-      console.log(`User Chips Commited: ${res.data}`);
-      userBlind.remove();
-      let updateCommited = document.createElement('td');
-      updateCommited.innerText = `${res.data}`;
-      userCommitedChips.append(updateCommited);
-      updatePot();
-      updateUserStack();
-
-      async function updatePot() {
-        try {
-          const res = await axios.get('/texas_hold_em/update/pot');
-          console.log(`Updated Pot Val: ${res.data}`);
-          sumOfBlinds.remove();
-          let updatePot = document.createElement('td');
-          updatePot.innerText = res.data;
-          pot.append(updatePot);
-        } catch (error) {
-          console.log(error);
-        }
-      }
-
-      async function updateUserStack() {
-        try {
-          const res = await axios.get('/texas_hold_em/update/user_chip_count');
-          console.log(`Updated User Stack: ${res.data}`);
-          userInitialStack.remove();
-          let updateUserStack = document.createElement('td');
-          updateUserStack.innerText = res.data;
-          userChipCount.append(updateUserStack);
-        } catch (error) {
-          console.log(error);
-        }
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  }
-};
+  };
+}
 
 revealFlopButton.onclick = function revealFlop(evt) {
   evt.preventDefault();
