@@ -1,4 +1,6 @@
-from game_elements import Player, Deck
+from game_elements import Player, Deck, Card
+
+import json
 
 ### The following code is meant to establish [test] classes to play around with. ###
 
@@ -447,6 +449,26 @@ def check_pair(hand):
         elif sorted_card_vals.count(i) != 2:
             card_list.append(i)
 
+    # The following lines of code are designed to evaluate a...
+    # player's pre-flop hand. With this functionality built-in...
+    # the hand ranking system is capable of evaluating a hand...
+    # at each critical point in a given hand: pre-flop, post-flop...
+    # post-turn, and post-river.
+    if len(hand) == 2:
+        # Initiate pre-flop hand evaluation process.
+        if len(pair) == 2:
+            print(f"Pre-flop Pair: {pair}")
+            # MAX pre-flop pair score = 29
+            score = 15 + pair[0]
+            return score
+        else:
+            print(f"Pre-flop High-card: {card_list[0:2]}")
+            # MAX pre-flop high-card score = 14.13
+            score = card_list[0] + card_list[1] / 100
+            return score
+
+    ### This marks the end of the pre-flop hand evaluation code. ###
+
     if len(pair) == 2:
         print(f"PAIR: {pair}")
         print(f"Un-paired cards: {card_list}")
@@ -467,7 +489,12 @@ def check_pair(hand):
         )
         return score
 
+
 for player in players:
+    print(f"{player.name}'s pre-flop hand rating: {check_pair(player.hole_cards)}")
+    print(
+        f"{player.name}'s post-flop hand rating: {check_straight_flush(player.post_flop_hand)}"
+    )
     player.hand_ranking = check_straight_flush(player.post_river_hand)
     print(f"{player.hand_ranking} points for {player.name}.")
 

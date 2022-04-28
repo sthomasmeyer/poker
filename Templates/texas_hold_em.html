@@ -31,12 +31,35 @@ that is meant to be manipulated by its "children", we must first write... -->
     </tr>
     <tr id="user-options">
       <th>Action: </th>
+
+        <!-- If the active-user is the dealer, then they begin the game...
+        in the small blind, and thus have the option to call. Otherwise...
+        their options depend on decisions made by their ai-opponent. -->
+
         <td><form method="POST"><button id="call-pre-flop-btn">Call</button></form></td>
+
+        
+        <!-- Initially (at least in a heads-up game), players always...
+        have the option to raise. However, in each round of betting...
+        there is a maximum of one initial bet followed by three raises. -->
         <td><form method="POST">{% include "_form.html" %} <button>Raise</button></form></td>
+
+        <!-- In a game of Texas Hold'em, users always have the option...
+        to fold, whether or not it makes sense to do so. -->
         <td><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
+
+        <!-- The following three buttons are vital bc they each trigger...
+        key events in a given hand of Texas Hold'em. Their state is "hidden"...
+        by default, and they will be revealed to users when appropriate. -->
         <td><button hidden id="reveal-flop-btn">Reveal Flop</button></td>
         <td><button hidden id="reveal-turn-btn">Reveal Turn</button></td>
         <td><button hidden id="reveal-river-btn">Reveal River</button></td>
+
+        <!-- Only one of these "showdown" buttons will be generated...
+        every time this HTML template is rendered. Even though they...
+        activate markedly different paths when clicked (one is aligned...
+        to a user-win, while the other is aligned to a user-loss), they...
+        are indistinguishable from the user's point-of-view. -->
         <td hidden id="showdown">
           {% if players[0].hand_ranking > players[1].hand_ranking %}
           <form id="showdown-win-form" action="/texas_hold_em/win/{{ user.id }}">
@@ -67,7 +90,7 @@ that is meant to be manipulated by its "children", we must first write... -->
     </tr>
     <tr id="ai-opp-chip-count">
       <th>Chip Count: </th>
-        <td>{{ players[1].stack }}</td>
+        <td id="ai-opp-initial-stack">{{ players[1].stack }}</td>
     </tr>
     <tr id="ai-opp-hand">
       <th>Hand: </th>

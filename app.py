@@ -4,6 +4,9 @@ import os
 # Import Python's [json] module.
 import json
 
+# Import Python's [random] module.
+import random
+
 # Import Flask itself, from [flask], and import all of the Flask features...
 # (i.e., render_template, request) that you will be using in this application.
 from flask import Flask, jsonify, request, render_template, redirect, flash, session, g
@@ -15,10 +18,10 @@ from models import bcrypt, db, connect_db, User, TexasHoldEm, TexasHoldEmPot
 from forms import UserLoginForm, CreateAccountForm, TexasHoldEmBet
 
 # Import the classes you've created from the [game_elements.py] file.
-from game_elements import Player, Deck
+from game_elements import Player, Deck, Card
 
 # Import the classes you've created from the [game_elements.py] file.
-from hand_rankings import check_straight_flush
+from hand_rankings import check_straight_flush, check_pair
 
 app = Flask(__name__)
 
@@ -176,12 +179,27 @@ def successful_login(user_id):
         flash("Access denied.")
         return redirect("/")
 
+    session["ai_stack"] = 888
+
     return render_template("successful_login.html", user=user)
+
+
+@app.route("/delete/user/<int:user_id>", methods=["POST"])
+def destroy(user_id):
+    user = User.query.get_or_404(user_id)
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return redirect("/")
 
 
 @app.route("/texas_hold_em/<int:user_id>", methods=["GET", "POST"])
 def play_texas_hold_em(user_id):
     user = User.query.get_or_404(user_id)
+    ai_stack = session["ai_stack"]
+    print("LEROYYYY JENKINS!!!!")
+    print(f"(1) AI SessionStorge Chip-count: {ai_stack}")
 
     # If a user attempts to access another user's profile...
     # restart the application (+) flash a helpful message.
@@ -211,7 +229,8 @@ def play_texas_hold_em(user_id):
 
     # Create a [computer_opponent] instance of the Player class...
     # This poker-bot is named "Cortana" after the fictional AI in Halo.
-    computer_opponent = Player("cortana", 100)
+    computer_opponent = Player("cortana", ai_stack)
+    print(f"Opp Player-instance Stack: {computer_opponent.stack}")
     players.append(computer_opponent)
 
     # Create an instance of the TexasHoldEm class to store...
@@ -285,6 +304,10 @@ def play_texas_hold_em(user_id):
         computer_opponent.pre_flop_bet += 2
         pot.ai_pre_flop = json.dumps(2)
 
+        # Commit the computer opp's chip-count (stack) to session storage.
+        session["ai_stack"] = computer_opponent.stack
+        print(f"(2a) AI SessionStorge Chip-count: {ai_stack}")
+
         pot.total_chips = json.dumps(3)
     else:
         computer_opponent.dealer = True
@@ -302,6 +325,10 @@ def play_texas_hold_em(user_id):
         computer_opponent.stack -= 1
         computer_opponent.pre_flop_bet += 1
         pot.ai_pre_flop = json.dumps(1)
+
+        # Commit the computer opp's chip-count (stack) to session storage.
+        session["ai_stack"] = computer_opponent.stack
+        print(f"(2b) AI SessionStorge Chip-count: {ai_stack}")
 
         pot.total_chips = json.dumps(3)
 
@@ -352,14 +379,14 @@ def get_ai_opp_hand():
     return saved_hand.computer_opp_cards
 
 
-# @app.route("/texas_hold_em/update/ai_opp_chip_count", methods=["POST", "GET"])
-# def update_ai_chip_count():
-#     user_id = session["user_id"]
+@app.route("/texas_hold_em/update/ai_opp_chip_count", methods=["POST", "GET"])
+def update_ai_chip_count():
+    user_id = session["user_id"]
+    ai_opp_stack = session["ai_stack"]
 
-#     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
-#     active_pot = TexasHoldEmPot.query.first()
+    ai_stack = json.dumps(ai_opp_stack)
 
-#     pass
+    return ai_stack
 
 
 @app.route("/texas_hold_em/update/user_chip_count", methods=["POST", "GET"])
@@ -384,24 +411,36 @@ def update_pot():
 @app.route("/texas_hold_em/ai_pre_flop_action", methods=["POST", "GET"])
 def ai_pre_flop_action():
     user_id = session["user_id"]
+    ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    ai_json_hand = saved_hand.computer_opp_cards
+
+    ai_hand = []
+    for card in json.loads(ai_json_hand):
+        ai_hand.append(Card(card[1], card[0]))
 
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
-    # At the moment, the ai-opp will default to "call" if it is in the small-blind.
-    if active_pot.user_pre_flop > active_pot.ai_pre_flop:
+    ai_hand_rank = check_pair(ai_hand)
+
+    if ai_hand_rank > 13:
         ai_commited_chips = int(active_pot.ai_pre_flop)
         user_commited_chips = int(active_pot.user_pre_flop)
 
         difference = user_commited_chips - ai_commited_chips
         ai_commited_chips += difference
 
+        ai_stack -= difference
+        session["ai_stack"] = ai_stack
+
         active_pot.ai_pre_flop = json.dumps(ai_commited_chips)
         active_pot.total_chips = json.dumps(ai_commited_chips + user_commited_chips)
         db.session.commit()
 
         return active_pot.ai_pre_flop
+    else: 
+        return json.dumps("xXx")
 
 
 @app.route("/texas_hold_em/user_pre_flop_call", methods=["GET", "POST"])
@@ -486,12 +525,15 @@ def get_user_score():
 @app.route("/texas_hold_em/user_fold/<int:user_id>", methods=["GET", "POST"])
 def folded(user_id):
     user = User.query.get_or_404(user_id)
+    ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
     # The user has folded, so the ai-opp wins the pot.
-
+    int_pot = int(active_pot.total_chips)
+    adjusted_ai_stack = ai_stack + int_pot
+    session["ai_stack"] = adjusted_ai_stack
 
     saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
     for hand in saved_user_hands:
@@ -499,7 +541,31 @@ def folded(user_id):
 
     db.session.commit()
 
-    flash(f"Previous hand: [fold]")
+    flash(f"Previous hand: [user-fold]")
+    return redirect(f"/texas_hold_em/{user_id}")
+
+
+@app.route("/texas_hold_em/ai_opp_fold", methods=["GET", "POST"])
+def opp_folded():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    # The ai-opp has folded, so user has won this hand.
+    int_pot = int(active_pot.total_chips)
+    adjusted_user_capital = int(user.capital) + int_pot
+    user.capital = json.dumps(adjusted_user_capital)
+    db.session.commit()
+
+    saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
+    for hand in saved_user_hands:
+        db.session.delete(hand)
+
+    db.session.commit()
+
+    flash(f"Previous hand: [ai-opp-fold]")
     return redirect(f"/texas_hold_em/{user_id}")
 
 
@@ -529,12 +595,15 @@ def won_hand(user_id):
 @app.route("/texas_hold_em/loss/<int:user_id>", methods=["GET", "POST"])
 def lost_hand(user_id):
     user = User.query.get_or_404(user_id)
+    ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
     # The user has lost, so the ai-opp wins the pot.
-
+    int_pot = int(active_pot.total_chips)
+    adjusted_ai_stack = ai_stack + int_pot
+    session["ai_stack"] = adjusted_ai_stack
 
     saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
     for hand in saved_user_hands:
@@ -544,13 +613,3 @@ def lost_hand(user_id):
 
     flash(f"Previous hand: [loss]")
     return redirect(f"/texas_hold_em/{user_id}")
-
-
-@app.route("/delete/user/<int:user_id>", methods=["POST"])
-def destroy(user_id):
-    user = User.query.get_or_404(user_id)
-
-    db.session.delete(user)
-    db.session.commit()
-
-    return redirect("/")
