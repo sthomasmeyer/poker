@@ -1,20 +1,24 @@
-// The following variables capture elements related to...
-// The active-user's pre-flop options.
-const preFlopCheckButton = document.getElementById('check-pre-flop-btn');
-const preFlopCallButton = document.getElementById('call-pre-flop-btn');
+// If the user is the dealer for a given hand, then an...
+// HTML element w/ the following [id] will be auto-generated.
+let preFlopCallButton = document.getElementById('pre-flop-call-btn');
 
+// The following HTML elements are *always* generated...
+// at the beginning of a hand, and they are revealed to...
+// users when appropriate.
 const revealFlopButton = document.getElementById('reveal-flop-btn');
 const revealTurnButton = document.getElementById('reveal-turn-btn');
 const revealRiverButton = document.getElementById('reveal-river-btn');
 
 // The following variables capture elements related to...
-// the "showdown" or the end of each poker hand. Note...
-// only one set [win] or [loss] will exist in a given hand.
+// the "showdown" or the end of each poker hand. Note only...
+// one set [win] / [loss] / [draw] will exist in a given hand.
 const showdownDiv = document.getElementById('showdown');
 const showdownWinForm = document.getElementById('showdown-win-form');
 const showdownWinButton = document.getElementById('showdown-win-btn');
 const showdownLossForm = document.getElementById('showdown-loss-form');
 const showdownLossButton = document.getElementById('showdown-loss-btn');
+const showdownDrawForm = document.getElementById('showdown-draw-form');
+const showdownDrawButton = document.getElementById('showdown-draw-btn');
 
 // The following variables capture elements related to...
 // the active-user.
@@ -23,6 +27,7 @@ const userInitialStack = document.getElementById('user-initial-stack');
 const userCommitedChips = document.getElementById('user-commited');
 const userBlind = document.getElementById('user-blind');
 const userScore = document.getElementById('user-score');
+const userOptions = document.getElementById('user-options');
 
 // The following [foldButton] variable is aligned to...
 // the player's ever-present option to fold.
@@ -42,6 +47,13 @@ const oppInitialStack = document.getElementById('ai-opp-initial-stack');
 const oppCommitedChips = document.getElementById('ai-opp-commited');
 const oppBlind = document.getElementById('ai-opp-blind');
 const oppScore = document.getElementById('ai-opp-score');
+
+// The following "counter" variables are designed to track...
+// the number of bets / raises in a given betting round.
+let preFlopRaiseCounter = 0;
+let postFlopRaiseCounter = 0;
+let postTurnRaiseCounter = 0;
+let postRiverRaiseCounter = 0;
 
 // This [action()] function is triggered "onload"...
 window.onload = function action() {
@@ -122,6 +134,114 @@ window.onload = function action() {
             console.log(error);
           }
         }
+
+        if (updateCommited.innerText == userBlind.innerText) {
+          console.log('Cortana decided to call.');
+          // If Cortana calls, then the active-user can check.
+          let preFlopCheckButton = document.createElement('button');
+          preFlopCheckButton.innerText = 'Check';
+          userOptions.append(preFlopCheckButton);
+
+          // This [if]-statement is designed to check whether...
+          // or not the active-user has the option to check.
+          if (preFlopCheckButton != null) {
+            preFlopCheckButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+              // If the user chooses to check, then take away the...
+              // option to fold, and display the [revealFlopButton].
+              foldButton.hidden = true;
+              // Don't forget to delete this [preFlopCheckbutton].
+              preFlopCheckButton.remove();
+              revealFlopButton.hidden = false;
+            };
+          }
+        }
+
+        if (updateCommited.innerText > userBlind.innerText) {
+          console.log('Cortana decided to raise.');
+
+          preFlopRaiseCounter += 1;
+          console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
+
+          // If Cortana raises, then the active-user can call.
+          let preFlopCallButton = document.createElement('button');
+          preFlopCallButton.setAttribute('id', 'pre-flop-call-btn');
+          preFlopCallButton.innerText = 'Call';
+          userOptions.append(preFlopCallButton);
+
+          // This [if]-statement is designed to check whether...
+          // or not the active-user has the option to call.
+          if (preFlopCallButton != null) {
+            preFlopCallButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+
+              // Execute the asynchronous [preFlopCall()] function.
+              preFlopCall();
+
+              // If the user chooses to call, then take away the...
+              // option to fold, and display the [revealFlopButton].
+              foldButton.hidden = true;
+              // Don't forget to delete this [preFlopCallbutton].
+              preFlopCallButton.remove();
+              revealFlopButton.hidden = false;
+
+              async function preFlopCall() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_pre_flop_call'
+                  );
+                  console.log(`User Chips Commited: ${res.data}`);
+                  userBlind.remove();
+                  let updateCommited = document.createElement('td');
+                  updateCommited.innerText = `${res.data}`;
+                  userCommitedChips.append(updateCommited);
+                  updatePot();
+                  updateUserStack();
+
+                  // The total number of chips in the pot is impacted...
+                  // by the active-user's decision, so it must be updated.
+                  async function updatePot() {
+                    try {
+                      const res = await axios.get('/texas_hold_em/update/pot');
+                      console.log(`Updated Pot Val: ${res.data}`);
+                      // Remove the DOM-element associated w/ the...
+                      // value of the pot:
+                      pot.removeChild(pot.children[1]);
+                      // Replace it with the updated value.
+                      let updatePot = document.createElement('td');
+                      updatePot.innerText = res.data;
+                      pot.append(updatePot);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+
+                  // The number of chips in the active-user's stack is...
+                  // impacted by their decision, so it must be updated.
+                  async function updateUserStack() {
+                    try {
+                      const res = await axios.get(
+                        '/texas_hold_em/update/user_chip_count'
+                      );
+                      console.log(`Updated User Stack: ${res.data}`);
+                      // Remove the DOM-element associated w/ the...
+                      // initial value of the ai-opp's stack:
+                      userInitialStack.remove();
+                      // Replace it with the updated value.
+                      let updateUserStack = document.createElement('td');
+                      updateUserStack.innerText = res.data;
+                      userChipCount.append(updateUserStack);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+                } catch (error) {
+                  console.log(error);
+                }
+              }
+            };
+          }
+        }
       } catch (error) {
         console.log(error);
       }
@@ -190,20 +310,6 @@ if (preFlopCallButton != null) {
         console.log(error);
       }
     }
-  };
-}
-
-// This [if]-statement is designed to check whether...
-// or not the active-user has the option to check.
-if (preFlopCheckButton != null) {
-  preFlopCheckButton.onclick = function userAction(evt) {
-    evt.preventDefault();
-    // If the user chooses to check, then take away the...
-    // option to fold, and display the [revealFlopButton].
-    foldButton.hidden = true;
-    // Don't forget to delete this [preFlopCheckbutton].
-    preFlopCheckButton.remove();
-    revealFlopButton.hidden = false;
   };
 }
 
@@ -449,6 +555,74 @@ if (showdownLossButton != null) {
     setTimeout(() => {
       alert(`
       You've lost this hand
+      Press 'OK' to see the next hand
+      `);
+    }, 500);
+  };
+}
+
+// This [if]-statement is designed to check whether...
+// or not the hand ended in a DRAW.
+if (showdownDrawButton != null) {
+  showdownDrawButton.onclick = function showdown(evt) {
+    evt.preventDefault();
+    setTimeout(() => {
+      showdownDrawForm.submit();
+    }, 1000);
+    showdownDrawButton.remove();
+
+    async function getOppCards() {
+      try {
+        const res = await axios.get('/texas_hold_em/ai_opp_cards');
+        console.log(`Opp Hand: ${res.data}`);
+        const computerHand = [];
+        res.data.forEach((element) =>
+          computerHand.push(element.join().replace(',', ''))
+        );
+        console.log(computerHand);
+        displayHand = document.createElement('td');
+        let i = 0;
+        for (i = 0; i < computerHand.length; i++) {
+          displayHand.innerText += `${computerHand[i]} `;
+        }
+        oppHand.append(displayHand);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getOppCards();
+
+    async function getUserScore() {
+      try {
+        const res = await axios.get('/texas_hold_em/user_score');
+        console.log(`User Score: ${res.data}`);
+        displayScore = document.createElement('td');
+        displayScore.innerText = `${res.data}`;
+        userScore.append(displayScore);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getUserScore();
+
+    async function getOppScore() {
+      try {
+        const res = await axios.get('/texas_hold_em/computer_opp_score');
+        console.log(`Opp Score: ${res.data}`);
+        displayScore = document.createElement('td');
+        if (res.data > 1) {
+          displayScore.innerText = res.data;
+          oppScore.append(displayScore);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getOppScore();
+
+    setTimeout(() => {
+      alert(`
+      This hand ended in a draw
       Press 'OK' to see the next hand
       `);
     }, 500);

@@ -32,17 +32,15 @@ that is meant to be manipulated by its "children", we must first write... -->
     <tr id="user-options">
       <th>Action: </th>
 
-        <td id="pre-flop-check-or-call">
-          {% if players[1].dealer %}
-          <form method="POST"><button id="check-pre-flop-btn">Check</button></form>
-          {% elif players[0].dealer %}
-          <form method="POST"><button id="call-pre-flop-btn">Call</button></form>
-          {% endif %}
-        </td>
-
         <!-- In a game of Texas Hold'em, users always have the option...
         to fold, whether or not it makes sense to do so. -->
         <td><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
+
+        <!-- If the active-user is the dealer, then they are the first...
+        to act, and they will have the option to call. -->
+        {% if players[0].dealer %}
+        <td><form action="/texas_hold_em/user_pre_flop_call"><button id="pre-flop-call-btn">Call</button></form></td>
+        {% endif %}
 
         <!-- The following three buttons are vital bc they each trigger...
         key events in a given hand of Texas Hold'em. Their state is "hidden"...
@@ -64,6 +62,10 @@ that is meant to be manipulated by its "children", we must first write... -->
           {% elif players[1].hand_ranking > players[0].hand_ranking %}
           <form id="showdown-loss-form" action="/texas_hold_em/loss/{{ user.id }}">
             <button id="showdown-loss-btn">Showdown</button>
+          </form>
+          {% elif players[0].hand_ranking == players[1].hand_ranking %}
+          <form id="showdown-draw-form" action="/texas_hold_em/draw/{{ user.id }}">
+            <button id="showdown-draw-btn">Showdown</button>
           </form>
           {% endif %}
         </td>

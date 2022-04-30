@@ -19,9 +19,9 @@ from models import bcrypt, db, connect_db, User, TexasHoldEm, TexasHoldEmPot
 
 # Import the forms you've created from the [forms.py] file.
 from forms import (
-  UserLoginForm, 
-  CreateAccountForm, 
-  UpdateAccountForm,
+    UserLoginForm,
+    CreateAccountForm,
+    UpdateAccountForm,
 )
 
 # Import the classes you've created from the [game_elements.py] file.
@@ -32,6 +32,7 @@ from hand_rankings import check_straight_flush, check_pair
 
 # Import sensitive information from the [secrets.py] file.
 import secrets
+
 importlib.reload(secrets)
 new_secret_key = secrets.SUPER_SECRET_KEY
 new_db_connection = secrets.LOCAL_SQL_DB
@@ -45,7 +46,9 @@ app = Flask(__name__)
 # which will connect this application to a local SQL database...
 # format --> "postgresql://[user:[password]@[host-name]:[port number]/database_name]"
 # It is important to do this *before* calling the [connect_db(app)] function.
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", new_db_connection)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", new_db_connection
+)
 
 # If Flask-SQLAlchemy's Track Modifications feature is set to [True]...
 # then it will track modifications of objects and emit signals...
@@ -134,9 +137,10 @@ def register():
 
     if form.validate_on_submit():
         data = {
-          k: v 
-          for k, v in form.data.items() 
-          if k != "csrf_token" and k != "confirm_password"}
+            k: v
+            for k, v in form.data.items()
+            if k != "csrf_token" and k != "confirm_password"
+        }
 
         for k in data:
             if k != "csrf_token" and k != "password":
@@ -332,14 +336,19 @@ def destroy(user_id):
 def play_texas_hold_em(user_id):
     user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
-    print("LEROYYYY JENKINS!!!!")
-    print(f"(1) AI SessionStorge Chip-count: {ai_stack}")
+    print(f"AI SessionStorge Chip-count: {ai_stack}")
 
-    # If a user attempts to access another user's profile...
+    # If a user attempts to access another user's game...
     # restart the application (+) flash a helpful message.
     if session["user_id"] != user_id:
         flash("Access denied.")
         return redirect("/user/<int:user_id>")
+
+    # Reset the bet- / raise-counters for each round of betting.
+    session["pre_flop_raise_count"] = 0
+    session["post_flop_rase_count"] = 0
+    session["post_turn_raise_count"] = 0
+    session["post_river_raise_count"] = 0
 
     # For the purposes of this app, there should be one...
     # and only one hand of Texas Hold'em stored in the...
@@ -438,7 +447,7 @@ def play_texas_hold_em(user_id):
 
         # Commit the computer opp's chip-count (stack) to session storage.
         session["ai_stack"] = computer_opponent.stack
-        print(f"(2a) AI SessionStorge Chip-count: {ai_stack}")
+        print(f"(2a) AI Session POST-blind Chip-count: {ai_stack}")
 
         pot.total_chips = json.dumps(3)
     else:
@@ -460,7 +469,7 @@ def play_texas_hold_em(user_id):
 
         # Commit the computer opp's chip-count (stack) to session storage.
         session["ai_stack"] = computer_opponent.stack
-        print(f"(2b) AI SessionStorge Chip-count: {ai_stack}")
+        print(f"(2b) AI Session POST-blind Chip-count: {ai_stack}")
 
         pot.total_chips = json.dumps(3)
 
@@ -559,8 +568,8 @@ def ai_pre_flop_action():
     ai_hand_rank = check_pair(ai_hand)
 
     # This [if]-statement will trigger the ai-decision path for a hand...
-    # ranked between [8] and [12]. Note, the [11] indicates "Jack-high".
-    if ai_hand_rank >= 8 and ai_hand_rank <= 12:
+    # ranked between [9.06] and [13]. Note, the [13] is equivalent to "King".
+    if ai_hand_rank >= 9.06 and ai_hand_rank <= 13:
         # Generate a random number from 1-100.
         rnum = random.randint(1, 100)
         # If this random number is less-than or equal-to [70], then...
@@ -586,28 +595,75 @@ def ai_pre_flop_action():
 
     # This [if]-statement will trigger the ai-decision path for a hand...
     # ranked [12], "Queen-high", or better.
-    elif ai_hand_rank >= 12:
+    elif ai_hand_rank >= 13:
         rnum = random.randint(1, 100)
-        # The ai-opp will call 90% of the time.
+        # The ai-opp will raise 90% of the time.
         if rnum <= 90:
+
+            # For each round of betting in Texas hold'em, there is...
+            # a maximum of one bet and three raises allowed. This..
+            # [if]-statement ensures that the ai-opp can still raise.
+            if session["pre_flop_raise_count"] <= 3:
+                session["pre_flop_raise_count"] += 1
+
+            # If there has already been one bet and three raises...
+            # then the ai-opp is forced to call or fold.
+            elif session["pre_flop_raise_count"] > 3:
+                rnum = random.randint(1, 100)
+                # If this random number is less-than or equal-to [85], then...
+                # the ai-opp will call. In other words, the ai-opp will call...
+                # 85% of the time.
+                if rnum <= 85:
+                    ai_commited_chips = int(active_pot.ai_pre_flop)
+                    user_commited_chips = int(active_pot.user_pre_flop)
+
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+
+                    active_pot.ai_pre_flop = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(
+                        ai_commited_chips + user_commited_chips
+                    )
+                    db.session.commit()
+
+                    return active_pot.ai_pre_flop
+                else:
+                    return json.dumps("xoxo")
+
             ai_commited_chips = int(active_pot.ai_pre_flop)
             user_commited_chips = int(active_pot.user_pre_flop)
+            pot = int(active_pot.total_chips)
 
+            # This [difference] variable represents the number...
+            # of chips the ai-opp would have to bet to call.
             difference = user_commited_chips - ai_commited_chips
-            ai_commited_chips += difference
 
+            # These lines of code update the ai-opp's commited...
+            # chips (+) the pot to a "call"-level.
+            ai_commited_chips += difference
             ai_stack -= difference
+            pot = user_commited_chips + ai_commited_chips
+
+            # These lines of code update the ai-opp's commited...
+            # chips (+) the pot to a "raise"-level.
+            ai_commited_chips += round(pot / 2)
+            ai_stack -= round(pot / 2)
+            pot += round(pot / 2)
+
             session["ai_stack"] = ai_stack
 
             active_pot.ai_pre_flop = json.dumps(ai_commited_chips)
-            active_pot.total_chips = json.dumps(ai_commited_chips + user_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
             db.session.commit()
 
             return active_pot.ai_pre_flop
         else:
             return json.dumps("xoxo")
 
-    elif ai_hand_rank < 8:
+    elif ai_hand_rank < 9.06:
         return json.dumps("xoxo")
 
 
@@ -652,6 +708,32 @@ def get_flop():
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
 
     return saved_hand.flop
+
+
+@app.route("/texas_hold_em/ai_post_flop_action", methods=["POST", "GET"])
+def ai_post_flop_action():
+    user_id = session["user_id"]
+    ai_stack = session["ai_stack"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    # Capture the ai-opp's hand from the db. Then, create two instances...
+    # of the [Card]-object w/ the captured info (+) store them in a list.
+    ai_json_hole_cards = saved_hand.computer_opp_cards
+    ai_hole_cards = []
+    for card in json.loads(ai_json_hole_cards):
+        ai_hole_cards.append(Card(card[1], card[0]))
+
+    # Capture the flop from the db (+) store the cards in a list.
+    json_flop = saved_hand.flop
+    flop = []
+    for card in json.loads(json_flop):
+        flop.append(Card(card[1], card[0]))
+
+    # Combine the ai-opp's hole cards w/ the flop (+) rank their hand.
+    ai_post_flop_hand = ai_hole_cards + flop
+    ai_hand_rank = check_straight_flush(ai_post_flop_hand)
 
 
 @app.route("/texas_hold_em/turn", methods=["GET", "POST"])
@@ -780,4 +862,30 @@ def lost_hand(user_id):
     db.session.commit()
 
     flash(f"Previous hand: [loss]")
+    return redirect(f"/texas_hold_em/{user_id}")
+
+
+@app.route("/texas_hold_em/draw/<int:user_id>", methods=["GET", "POST"])
+def drew_hand(user_id):
+    user = User.query.get_or_404(user_id)
+    ai_stack = session["ai_stack"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    # This hand ended in a draw, so the players split the pot 50:50.
+    int_pot = int(active_pot.total_chips)
+    adjusted_user_capital = int(user.capital) + (int_pot / 2)
+    user.capital = json.dumps(adjusted_user_capital)
+    adjusted_ai_stack = ai_stack + (int_pot / 2)
+    session["ai_stack"] = adjusted_ai_stack
+    db.session.commit()
+
+    saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
+    for hand in saved_user_hands:
+        db.session.delete(hand)
+
+    db.session.commit()
+
+    flash(f"Previous hand: [draw]")
     return redirect(f"/texas_hold_em/{user_id}")

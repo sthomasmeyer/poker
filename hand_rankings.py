@@ -32,8 +32,6 @@ for player in players:
 for card in new_deck.flop:
     print(f"flop: {card.value} of {card.suit}")
 
-print(f"FLOP: {new_deck.jsonify_cards(new_deck.flop)}")
-
 new_deck.turn_protocol()
 for player in players:
     player.incorporate_turn(new_deck)
