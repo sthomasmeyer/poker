@@ -346,7 +346,7 @@ def play_texas_hold_em(user_id):
 
     # Reset the bet- / raise-counters for each round of betting.
     session["pre_flop_raise_count"] = 0
-    session["post_flop_rase_count"] = 0
+    session["post_flop_raise_count"] = 0
     session["post_turn_raise_count"] = 0
     session["post_river_raise_count"] = 0
 
@@ -548,7 +548,7 @@ def update_pot():
     return active_pot.total_chips
 
 
-@app.route("/texas_hold_em/ai_pre_flop_action", methods=["POST", "GET"])
+@app.route("/texas_hold_em/ai_pre_flop_decision", methods=["POST", "GET"])
 def ai_pre_flop_action():
     user_id = session["user_id"]
     ai_stack = session["ai_stack"]
@@ -710,13 +710,26 @@ def get_flop():
     return saved_hand.flop
 
 
-@app.route("/texas_hold_em/ai_post_flop_action", methods=["POST", "GET"])
+@app.route("/texas_hold_em/ai_post_flop_decision", methods=["POST", "GET"])
 def ai_post_flop_action():
     user_id = session["user_id"]
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    # Capture the number of chips commited by the active-user (+) the ai-opp...
+    # If no chips have been commited, then temporarily assign these variables...
+    # a value of zero.
+    if active_pot.ai_post_flop:
+        ai_commited_chips = int(active_pot.ai_post_flop)
+    else:
+        ai_commited_chips = 0
+
+    if active_pot.user_post_flop:
+        user_commited_chips = int(active_pot.user_post_flop)
+    else:
+        user_commited_chips = 0
 
     # Capture the ai-opp's hand from the db. Then, create two instances...
     # of the [Card]-object w/ the captured info (+) store them in a list.
@@ -734,6 +747,296 @@ def ai_post_flop_action():
     # Combine the ai-opp's hole cards w/ the flop (+) rank their hand.
     ai_post_flop_hand = ai_hole_cards + flop
     ai_hand_rank = check_straight_flush(ai_post_flop_hand)
+
+    # This [if]-statement will trigger the ai-decision path for a hand...
+    # ranked lower than [14.XYZ], Ace-high. Note, it checks to ensure...
+    # that the ai-opp can "check" according to the rules. 
+
+    # This game-state (wherein the number of chips commited by both the...
+    # ai-opp and the active-user, post-flop, are equal) can only occur if...
+    # this is the first opportunity for a given player to act in this round...
+    # of betting or if the first player to act decided to check.
+    if ai_hand_rank < 14 and ai_commited_chips == user_commited_chips:
+        # Generate a random number from 1-100.
+        rnum = random.randint(1, 100)
+        # If this random number is less-than or equal-to [90], then...
+        # the ai-opp will check. In other words, the ai-opp will check...
+        # 90% of the time.
+        if rnum <= 90:
+            # Update the [ai_post_flop] section of the db to equal...
+            # the number of chips the ai-opp has commited in this...
+            # round of betting. In this case, that number is zero.
+            active_pot.ai_post_flop = json.dumps(0)
+            db.session.commit()
+
+            # Note, because no bet / raise has occured, it is unnecessary...
+            # to update the ai-opp's total chip-count (+) the pot. 
+
+            return active_pot.ai_post_flop
+
+        # The ai-opp will raise 10% of the time.
+        if rnum > 90:
+            # Capture the total number of chips in the pot from the db.
+            pot = int(active_pot.total_chips)
+
+            # In this scenario, the ai-opp will make a bet that is...
+            # (1/3) the size of the total pot.
+            ai_commited_chips += round(pot / 3)
+            ai_stack -= round(pot / 3)
+            pot += round(pot / 3)
+
+            # Update the ai-opp's total chip-count.
+            session["ai_stack"] = ai_stack
+
+            # Update (+) commit changes to the db.
+            active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+    # If this [if]-statement returns "true", then the ai-opp has a hand...
+    # ranked lower than [14.XYZ], Ace-high, and they *cannot* check.
+    elif ai_hand_rank < 14 and ai_commited_chips < user_commited_chips:
+        # Generate a random number from 1-100.
+        rnum = random.randint(1, 100)
+
+        # The ai-opp will fold 85% of the time.
+        if rnum <= 85:
+            return json.dumps("xoxo")
+
+        # The ai-opp will call 10% of the time.
+        if rnum > 85 and rnum < 95:
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(
+                initial_pot_val + ai_commited_chips + user_commited_chips
+            )
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+        # The ai-opp will raise 5% of the time.
+        if rnum >= 95:
+
+            # For each round of betting in Texas hold'em, there is...
+            # a maximum of one bet and three raises allowed. This...
+            # [if]-statement ensures that the ai-opp can still raise.
+            if session["post_flop_raise_count"] <= 3:
+                session["post_flop_raise_count"] += 1
+
+            # If there has already been one bet and three raises...
+            # then the ai-opp is forced to call or fold.
+            elif session["pre_flop_raise_count"] > 3:
+                rnum = random.randint(1,100)
+                # In this scenario, the ai-opp will call 95% of the time.
+                if rnum <= 95:
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    initial_pot_val = int(active_pot.total_chips)
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+                    
+                    active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(
+                        initial_pot_val + ai_commited_chips + user_commited_chips
+                    )
+                    db.session.commit()
+
+                    return active_pot.ai_post_flop
+                else:
+                    return json.dumps("xoxo")
+
+            # This [difference] variable represents the number...
+            # of chips the ai-opp would have to bet to call.
+            difference = user_commited_chips - ai_commited_chips
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            # These lines of code update the ai-opp's commited...
+            # chips (+) the pot to a "call"-level.
+            ai_commited_chips += difference
+            ai_stack -= difference
+
+            updated_pot_val = initial_pot_val + difference
+
+            # These lines of code update the ai-opp's commited...
+            # chips (+) the pot to a "raise"-level.
+            ai_commited_chips += round(updated_pot_val / 3)
+            ai_stack -= round(updated_pot_val / 3)
+            pot = (initial_pot_val + round(updated_pot_val / 3))
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+    elif ai_hand_rank > 14 and ai_commited_chips == user_commited_chips:
+        rnum = random.randint(1, 100)
+        # The ai-opp will raise 65% of the time.
+        if rnum <= 65:
+            session["post_flop_raise_count"] += 1
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += round(initial_pot_val / 3)
+            ai_stack -= round(initial_pot_val / 3)
+            pot = (initial_pot_val + round(initial_pot_val / 3))
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+        # The ai-opp will check 35% of the time.
+        elif rnum > 65:
+            active_pot.ai_post_flop = json.dumps(0)
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+    # If this [if]-statement returns "true", then the ai-opp has a hand...
+    # ranked higher than [14.XYZ], Ace-high, and they *cannot* check.
+    elif ai_hand_rank > 14 and ai_commited_chips < user_commited_chips:
+        rnum = random.randint(1, 100)
+
+        # The ai-opp will fold 10% of the time.
+        if rnum <= 10:
+            return json.dumps("xoxo")
+
+        # The ai-opp will call 45% of the time.
+        elif rnum > 10 and rnum <= 55:
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(
+                initial_pot_val + ai_commited_chips + user_commited_chips
+            )
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+        # The ai-opp will raise 45% of the time, if possible.
+        elif rnum > 55:
+
+            # For each round of betting in Texas hold'em, there is...
+            # a maximum of one bet and three raises allowed. This...
+            # [if]-statement ensures that the ai-opp can still raise.
+            if session["post_flop_raise_count"] <= 3:
+                session["post_flop_raise_count"] += 1
+
+            # If there has already been one bet and three raises...
+            # then the ai-opp is forced to call or fold.
+            elif session["post_flop_raise_count"] > 3:
+                rnum = random.randint(1,100)
+                # In this scenario, the ai-opp will call 95% of the time.
+                if rnum <= 95:
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    initial_pot_val = int(active_pot.total_chips)
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+                    
+                    active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(
+                        initial_pot_val + ai_commited_chips + user_commited_chips
+                    )
+                    db.session.commit()
+
+                    return active_pot.ai_post_flop
+                else:
+                    return json.dumps("xoxo")
+
+            # This [difference] variable represents the number...
+            # of chips the ai-opp would have to bet to call.
+            difference = user_commited_chips - ai_commited_chips
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            # These lines of code update the ai-opp's commited...
+            # chips (+) the pot to a "call"-level.
+            ai_commited_chips += difference
+            ai_stack -= difference
+
+            updated_pot_val = initial_pot_val + difference
+
+            # These lines of code update the ai-opp's commited...
+            # chips (+) the pot to a "raise"-level.
+            ai_commited_chips += round(updated_pot_val / 3)
+            ai_stack -= round(updated_pot_val / 3)
+            pot = (initial_pot_val + round(updated_pot_val / 3))
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_flop = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_flop
+
+
+@app.route("/texas_hold_em/user_post_flop_call", methods=["GET", "POST"])
+def user_post_flop_call():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    # Capture the number of chips commited by the active-user (+) the ai-opp...
+    # If no chips have been commited, then temporarily assign these variables...
+    # a value of zero.
+    if active_pot.ai_post_flop:
+        ai_commited_chips = int(active_pot.ai_post_flop)
+    else:
+        ai_commited_chips = 0
+
+    if active_pot.user_post_flop:
+        user_commited_chips = int(active_pot.user_post_flop)
+    else:
+        user_commited_chips = 0
+
+    # This [if]-statement ensures that the user-decision to call is reasonable.
+    if user_commited_chips < ai_commited_chips:
+        # Capture the difference between the ai-opp and user commited chips...
+        # (+) update the user's number commited to equal their ai-opponent's.
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
+
+        # Deduct the chips commited by this user-decision to call...
+        # from their total chip stack.
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        # Update [user-pre-flop] and [total_chips] values.
+        active_pot.user_post_flop = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+        db.session.commit()
+
+        return active_pot.user_post_flop
 
 
 @app.route("/texas_hold_em/turn", methods=["GET", "POST"])

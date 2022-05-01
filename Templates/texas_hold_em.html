@@ -12,7 +12,7 @@ that is meant to be manipulated by its "children", we must first write... -->
 
   <table id="active-user">
     <tr>
-      <th>{{ players[0].name }}{% if players[0].dealer %} (dealer) {% endif %}</th>
+      <th id="user-name">{{ players[0].name }}{% if players[0].dealer %} (dealer) {% endif %}</th>
     </tr>
     <tr id="user-chip-count">
       <th>Chip Count: </th>
@@ -39,7 +39,32 @@ that is meant to be manipulated by its "children", we must first write... -->
         <!-- If the active-user is the dealer, then they are the first...
         to act, and they will have the option to call. -->
         {% if players[0].dealer %}
-        <td><form action="/texas_hold_em/user_pre_flop_call"><button id="pre-flop-call-btn">Call</button></form></td>
+        <td>
+          <form action="/texas_hold_em/user_pre_flop_call">
+            <button id="pre-flop-call-btn">Call</button>
+          </form>
+        </td>
+        {% endif %}
+
+        <!-- If the ai-opp is the dealer, then the active-user will...
+        be the first to act in each post-flop betting round, and...
+        they will always have the option to check. -->
+        {% if players[1].dealer %}
+        <td hidden id="post-flop-check-btn">
+          <form action="/texas_hold_em/user_post_flop_check">
+            <button>Check</button>
+          </form>
+        </td>
+        <td hidden id="post-turn-check-btn">
+          <form action="/texas_hold_em/user_post_turn_check">
+            <button>Check</button>
+          </form>
+        </td>
+        <td hidden id="post-river-check-btn">
+          <form action="/texas_hold_em/user_post_river_check">
+            <button>Check</button>
+          </form>
+        </td>
         {% endif %}
 
         <!-- The following three buttons are vital bc they each trigger...
@@ -84,7 +109,7 @@ that is meant to be manipulated by its "children", we must first write... -->
   <br>
   <table id="ai-opp">
     <tr>
-      <th>{{ players[1].name }}{% if players[1].dealer %} (dealer) {% endif %}</th>
+      <th id="ai-opp-name">{{ players[1].name }}{% if players[1].dealer %} (dealer) {% endif %}</th>
     </tr>
     <tr id="ai-opp-chip-count">
       <th>Chip Count: </th>

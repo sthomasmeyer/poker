@@ -1,6 +1,17 @@
+/* SECTION [0]: ESTABLISHING KEY VARIABLES */
+
 // If the user is the dealer for a given hand, then an...
 // HTML element w/ the following [id] will be auto-generated.
 let preFlopCallButton = document.getElementById('pre-flop-call-btn');
+
+// If the ai-opp is the delaer, then the active-user will...
+// be the first to act in each post-flop round of betting...
+// and they will always have the option to check. Note...
+// if the active-user is the dealer, then these buttons...
+// will not be auto-generated.
+let postFlopCheckButton = document.getElementById('post-flop-check-btn');
+let postTurnCheckButton = document.getElementById('post-turn-check-btn');
+let postRiverCheckButton = document.getElementById('post-river-check-btn');
 
 // The following HTML elements are *always* generated...
 // at the beginning of a hand, and they are revealed to...
@@ -55,6 +66,8 @@ let postFlopRaiseCounter = 0;
 let postTurnRaiseCounter = 0;
 let postRiverRaiseCounter = 0;
 
+/* SECTION [1]: PRE-FLOP ACTION */
+
 // This [action()] function is triggered "onload"...
 window.onload = function action() {
   console.log(`User (blind) Chips Commited: ${userBlind.innerText}`);
@@ -70,7 +83,7 @@ window.onload = function action() {
     // triggers the ai-opp's decision making process.
     async function cortanaPreFlopDecision() {
       try {
-        const res = await axios.get('/texas_hold_em/ai_pre_flop_action');
+        const res = await axios.get('/texas_hold_em/ai_pre_flop_decision');
         console.log(`Cortana decided to fold: ${isNaN(res.data)}`);
 
         // If the GET request produces anything other than...
@@ -150,8 +163,10 @@ window.onload = function action() {
               // If the user chooses to check, then take away the...
               // option to fold, and display the [revealFlopButton].
               foldButton.hidden = true;
-              // Don't forget to delete this [preFlopCheckbutton].
+              // Don't forget to delete this [preFlopCheckButton].
               preFlopCheckButton.remove();
+              // If the user decides to check, then...
+              // display the [revealFlop] button.
               revealFlopButton.hidden = false;
             };
           }
@@ -165,7 +180,6 @@ window.onload = function action() {
 
           // If Cortana raises, then the active-user can call.
           let preFlopCallButton = document.createElement('button');
-          preFlopCallButton.setAttribute('id', 'pre-flop-call-btn');
           preFlopCallButton.innerText = 'Call';
           userOptions.append(preFlopCallButton);
 
@@ -313,10 +327,18 @@ if (preFlopCallButton != null) {
   };
 }
 
+/* SECTION [2]: POST-FLOP ACTION */
+
 revealFlopButton.onclick = function revealFlop(evt) {
   evt.preventDefault();
 
+  // Execute the asynchronous [getFlop()] function.
   getFlop();
+
+  // Delete this button, it is no longer necessary.
+  revealFlopButton.remove();
+
+  // Capture flop data from the db (+) display it.
   async function getFlop() {
     try {
       const res = await axios.get('/texas_hold_em/flop');
@@ -335,21 +357,243 @@ revealFlopButton.onclick = function revealFlop(evt) {
     }
   }
 
-  revealFlopButton.remove();
-  newBtn = document.createElement('button');
-  newBtn.setAttribute('id', 'call-post-flop-btn');
-  newBtn.innerText = 'Call';
-  document.getElementById('user-options').append(newBtn);
-  let callPostFlopButton = document.getElementById('call-post-flop-btn');
-  foldButton.hidden = false;
+  // If the active-user is the dealer, then the ai-opp...
+  // will be the first to act after the flop is revealed.
+  if (document.getElementById('user-name').innerText.includes('dealer')) {
+    console.log('The action is on Cortana.');
 
-  callPostFlopButton.onclick = function keepPlaying(evt) {
+    // This asynchronous function makes a GET request...
+    // one of this application's "hidden" URLs that...
+    // triggers the ai-opp's decision making process.
+    async function cortanaPostFlopDecision() {
+      try {
+        const res = await axios.get('/texas_hold_em/ai_post_flop_decision');
+        console.log(`Cortana decided to fold: ${isNaN(res.data)}`);
+
+        // If the GET request produces anything other than...
+        // a number, specifically the number of chips...
+        // that the ai-opp has decided to bet. Then they...
+        // have chosen to fold this hand.
+        if (isNaN(res.data)) {
+          window.location = '/texas_hold_em/ai_opp_fold';
+        }
+
+        // At this point in the hand, the total number of chips...
+        // the ai-opp has commited is the sum of their pre-flop...
+        // commitment (oppCommitedChips.children[1].innerText)...
+        // and the result (res.data) of this GET request.
+        totalCommitedChips =
+          Number(oppCommitedChips.children[1].innerText) + res.data;
+        console.log(`Post-flop AI Chips Commited: 
+        ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+
+        // Remove the (outdated) DOM-element associated...
+        // w/ the ai-opp's number of commited chips:
+        oppCommitedChips.children[1].remove();
+        // Replace it with the updated number of chips...
+        // they've chosen to commit:
+        let updateCommited = document.createElement('td');
+        updateCommited.innerText = totalCommitedChips;
+        oppCommitedChips.append(updateCommited);
+
+        // Execute [updatePot()] + [updateOppStack()] functions.
+        updatePot();
+        updateOppStack();
+
+        // The total number of chips in the pot is impacted...
+        // by the ai-opp's decision, so it must be updated.
+        async function updatePot() {
+          try {
+            const res = await axios.get('/texas_hold_em/update/pot');
+            console.log(`Updated Pot Val: ${res.data}`);
+
+            // Remove the (outdated) DOM-element associated...
+            // w/ the value of the pot:
+            pot.removeChild(pot.children[1]);
+            // Replace it with the updated value:
+            let updatePot = document.createElement('td');
+            updatePot.innerText = res.data;
+            pot.append(updatePot);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        // The number of chips in the ai-opp's stack is...
+        // impacted by their decision, so it must be updated.
+        async function updateOppStack() {
+          try {
+            const res = await axios.get(
+              '/texas_hold_em/update/ai_opp_chip_count'
+            );
+            console.log(`Updated Opp Stack: ${res.data}`);
+            // Remove the (outdated) DOM-element associated
+            // w/ the value of the ai-opp's stack:
+            oppChipCount.children[1].remove();
+            // Replace it with the updated value:
+            let updateOppStack = document.createElement('td');
+            updateOppStack.innerText = res.data;
+            oppChipCount.append(updateOppStack);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        // This [if]-statement is designed to check whether...
+        // or not the ai-opp has checked.
+        if (
+          updateCommited.innerText == userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana has decided to check.');
+          // If Cortana checks, then the active-user can check.
+          let postFlopCheckButton = document.createElement('button');
+          postFlopCheckButton.innerText = 'Check';
+          userOptions.append(postFlopCheckButton);
+
+          // This [if]-statement is designed to check whether...
+          // or not the active-user has the option to check...
+          // Remember, if you attempt to add an [onclick] event...
+          // to a non-existent button, then errors will be thrown.
+          if (postFlopCheckButton != null) {
+            postFlopCheckButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+              // If the user chooses to check, then take away the...
+              // option to fold, and display the [revealFlopButton].
+              foldButton.hidden = true;
+              // Don't forget to delete this [preFlopCheckbutton].
+              postFlopCheckButton.remove();
+              // If the user decides to check, then...
+              // display the [revealTurn] button.
+              revealTurnButton.hidden = false;
+            };
+          }
+        }
+
+        if (
+          updateCommited.innerText > userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana decided to raise.');
+          postFlopRaiseCounter += 1;
+          console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
+
+          // If Cortana raises, then the active-user can call.
+          let postFlopCallButton = document.createElement('button');
+          postFlopCallButton.innerText = 'Call';
+          userOptions.append(postFlopCallButton);
+
+          // This [if]-statement is designed to check whether...
+          // or not the active-user has the option to call.
+          if (postFlopCallButton != null) {
+            postFlopCallButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+
+              // Execute the asynchronous [preFlopCall()] function.
+              postFlopCall();
+
+              // If the user chooses to call, then take away the...
+              // option to fold, and display the [revealFlopButton].
+              foldButton.hidden = true;
+              // Don't forget to delete this [preFlopCallbutton].
+              postFlopCallButton.remove();
+              // If the user decides to call, then...
+              // display the [revealTurn] button.
+              revealTurnButton.hidden = false;
+
+              async function postFlopCall() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_post_flop_call'
+                  );
+
+                  totalCommitedChips =
+                    Number(userCommitedChips.children[1].innerText) + res.data;
+
+                  console.log(`Post-flop User Chips Commited: 
+                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+
+                  // Remove the (outdated) DOM-element associated...
+                  // w/ the ai-opp's number of commited chips:
+                  userCommitedChips.children[1].remove();
+                  // Replace it with the updated number of chips...
+                  // they've chosen to commit:
+                  let updateCommited = document.createElement('td');
+                  updateCommited.innerText = totalCommitedChips;
+                  userCommitedChips.append(updateCommited);
+
+                  updatePot();
+                  updateUserStack();
+
+                  // The total number of chips in the pot is impacted...
+                  // by the active-user's decision, so it must be updated.
+                  async function updatePot() {
+                    try {
+                      const res = await axios.get('/texas_hold_em/update/pot');
+                      console.log(`Updated Pot Val: ${res.data}`);
+                      // Remove the DOM-element associated w/ the...
+                      // value of the pot:
+                      pot.removeChild(pot.children[1]);
+                      // Replace it with the updated value.
+                      let updatePot = document.createElement('td');
+                      updatePot.innerText = res.data;
+                      pot.append(updatePot);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+
+                  // The number of chips in the active-user's stack is...
+                  // impacted by their decision, so it must be updated.
+                  async function updateUserStack() {
+                    try {
+                      const res = await axios.get(
+                        '/texas_hold_em/update/user_chip_count'
+                      );
+                      console.log(`Updated User Stack: ${res.data}`);
+                      // Remove the DOM-element associated w/ the...
+                      // initial value of the ai-opp's stack:
+                      userChipCount.children[1].remove();
+                      // Replace it with the updated value.
+                      let updateUserStack = document.createElement('td');
+                      updateUserStack.innerText = res.data;
+                      userChipCount.append(updateUserStack);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+                } catch (error) {
+                  console.log(error);
+                }
+              }
+            };
+          }
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    cortanaPostFlopDecision();
+  } else {
+    console.log('The action is on the active user.');
+    postFlopCheckButton.hidden = false;
+  }
+};
+
+// This [if]-statement is designed to check whether...
+// or not the active-user has the option to check.
+if (postFlopCheckButton != null) {
+  console.log('check-mate');
+  postFlopCheckButton.onclick = function userAction(evt) {
     evt.preventDefault();
-    callPostFlopButton.remove();
+    // If the user chooses to check, then take away the...
+    // option to fold, and display the [revealTurnButton].
     foldButton.hidden = true;
+    // Don't forget to delete this [postFlopCheckButton].
+    postFlopCheckButton.remove();
     revealTurnButton.hidden = false;
   };
-};
+}
+
+/* SECTION [3]: POST-TURN ACTION */
 
 revealTurnButton.onclick = function revealTurn(evt) {
   evt.preventDefault();
@@ -384,6 +628,8 @@ revealTurnButton.onclick = function revealTurn(evt) {
     revealRiverButton.hidden = false;
   };
 };
+
+/* SECTION [4]: POST-RIVER ACTION */
 
 revealRiverButton.onclick = function revealRiver(evt) {
   evt.preventDefault();
@@ -421,7 +667,7 @@ revealRiverButton.onclick = function revealRiver(evt) {
   };
 };
 
-// This final section of code deals w/ the showdown.
+/* SECTION [5]: SHOWDOWN */
 
 // This [if]-statement is designed to check whether...
 // or not the active-user has WON the hand, and...
