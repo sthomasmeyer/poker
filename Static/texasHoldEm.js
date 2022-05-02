@@ -155,14 +155,16 @@ window.onload = function action() {
           preFlopCheckButton.innerText = 'Check';
           userOptions.append(preFlopCheckButton);
 
+          // Even though users are technically allowed to fold...
+          // it would be foolish to do so.
+          foldButton.hidden = true;
+
           // This [if]-statement is designed to check whether...
           // or not the active-user has the option to check.
           if (preFlopCheckButton != null) {
             preFlopCheckButton.onclick = function userAction(evt) {
               evt.preventDefault();
-              // If the user chooses to check, then take away the...
-              // option to fold, and display the [revealFlopButton].
-              foldButton.hidden = true;
+
               // Don't forget to delete this [preFlopCheckButton].
               preFlopCheckButton.remove();
               // If the user decides to check, then...
@@ -457,14 +459,28 @@ revealFlopButton.onclick = function revealFlop(evt) {
           if (postFlopCheckButton != null) {
             postFlopCheckButton.onclick = function userAction(evt) {
               evt.preventDefault();
-              // If the user chooses to check, then take away the...
-              // option to fold, and display the [revealFlopButton].
-              foldButton.hidden = true;
-              // Don't forget to delete this [preFlopCheckbutton].
+
+              // Execute the asynchronous [postFlopCheck()] function.
+              postFlopCheck();
+
+              // Don't forget to delete this [postFlopCheckbutton].
               postFlopCheckButton.remove();
               // If the user decides to check, then...
               // display the [revealTurn] button.
               revealTurnButton.hidden = false;
+
+              async function postFlopCheck() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_post_flop_check'
+                  );
+                  console.log(
+                    `[CHECK] Post-flop User Chips Commited: ${res.data}`
+                  );
+                } catch (error) {
+                  console.log(error);
+                }
+              }
             };
           }
         }
@@ -475,6 +491,9 @@ revealFlopButton.onclick = function revealFlop(evt) {
           console.log('Cortana decided to raise.');
           postFlopRaiseCounter += 1;
           console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
+
+          // If the ai-opp raises, then users can fold.
+          foldButton.hidden = false;
 
           // If Cortana raises, then the active-user can call.
           let postFlopCallButton = document.createElement('button');
@@ -581,15 +600,27 @@ revealFlopButton.onclick = function revealFlop(evt) {
 // This [if]-statement is designed to check whether...
 // or not the active-user has the option to check.
 if (postFlopCheckButton != null) {
-  console.log('check-mate');
   postFlopCheckButton.onclick = function userAction(evt) {
     evt.preventDefault();
+
+    // Execute the asynchronous [postFlopCheck()] function.
+    postFlopCheck();
+
     // If the user chooses to check, then take away the...
     // option to fold, and display the [revealTurnButton].
     foldButton.hidden = true;
     // Don't forget to delete this [postFlopCheckButton].
     postFlopCheckButton.remove();
     revealTurnButton.hidden = false;
+
+    async function postFlopCheck() {
+      try {
+        const res = await axios.get('/texas_hold_em/user_post_flop_check');
+        console.log(`[CHECK] Post-flop User Chips Commited: ${res.data}`);
+      } catch (error) {
+        console.log(error);
+      }
+    }
   };
 }
 
