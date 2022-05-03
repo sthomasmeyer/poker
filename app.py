@@ -809,7 +809,7 @@ def ai_post_flop_action():
             return json.dumps("xoxo")
 
         # The ai-opp will call 10% of the time.
-        if rnum > 85 and rnum < 95:
+        if rnum > 85 and rnum <= 95:
             difference = user_commited_chips - ai_commited_chips
             ai_commited_chips += difference
 
@@ -825,7 +825,7 @@ def ai_post_flop_action():
             return active_pot.ai_post_flop
 
         # The ai-opp will raise 5% of the time.
-        if rnum >= 95:
+        if rnum > 95:
 
             # For each round of betting in Texas hold'em, there is...
             # a maximum of one bet and three raises allowed. This...
@@ -835,7 +835,7 @@ def ai_post_flop_action():
 
             # If there has already been one bet and three raises...
             # then the ai-opp is forced to call or fold.
-            elif session["pre_flop_raise_count"] > 3:
+            elif session["post_flop_raise_count"] > 3:
                 rnum = random.randint(1, 100)
                 # In this scenario, the ai-opp will call 5% of the time.
                 if rnum <= 5:
@@ -1037,7 +1037,6 @@ def user_post_flop_call():
 @app.route("/texas_hold_em/user_post_flop_check", methods=["GET", "POST"])
 def user_post_flop_check():
     user_id = session["user_id"]
-    user = User.query.get_or_404(user_id)
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
@@ -1063,6 +1062,262 @@ def get_turn():
     return saved_hand.turn
 
 
+@app.route("/texas_hold_em/ai_post_turn_decision", methods=["GET", "POST"])
+def ai_post_turn_action():
+    user_id = session["user_id"]
+    ai_stack = session["ai_stack"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    if active_pot.ai_post_turn:
+        ai_commited_chips = int(active_pot.ai_post_turn)
+    else:
+        ai_commited_chips = 0
+
+    if active_pot.user_post_turn:
+        user_commited_chips = int(active_pot.user_post_turn)
+    else:
+        user_commited_chips = 0
+
+    ai_json_hole_cards = saved_hand.computer_opp_cards
+    ai_hole_cards = []
+    for card in json.loads(ai_json_hole_cards):
+        ai_hole_cards.append(Card(card[1], card[0]))
+
+    json_flop = saved_hand.flop
+    flop = []
+    for card in json.loads(json_flop):
+        flop.append(Card(card[1], card[0]))
+
+    json_turn = saved_hand.turn
+    turn = []
+    for card in json.loads(json_turn):
+        turn.append(Card(card[1], card[0]))
+
+    ai_post_turn_hand = ai_hole_cards + flop + turn
+    ai_hand_rank = check_straight_flush(ai_post_turn_hand)
+
+    if ai_hand_rank < 14 and ai_commited_chips == user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 90:
+            active_pot.ai_post_turn = json.dumps(0)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+        if rnum > 90:
+            pot = int(active_pot.total_chips)
+
+            ai_commited_chips += round(pot / 3)
+            ai_stack -= round(pot / 3)
+            pot += round(pot / 3)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+    elif ai_hand_rank < 14 and ai_commited_chips < user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 85:
+            return json.dumps("xoxo")
+
+        if rnum > 85 and rnum <= 95:
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(initial_pot_val + difference)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+        if rnum > 95:
+            if session["post_turn_raise_count"] <= 3:
+                session["post_turn_raise_count"] += 1
+
+            elif session["post_turn_raise_count"] > 3:
+                rnum = random.randint(1, 100)
+                if rnum <= 5:
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    initial_pot_val = int(active_pot.total_chips)
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+
+                    active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(initial_pot_val + difference)
+                    db.session.commit()
+
+                    return active_pot.ai_post_turn
+                else:
+                    return json.dumps("xoxo")
+
+            difference = user_commited_chips - ai_commited_chips
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += difference
+            ai_stack -= difference
+
+            updated_pot_val = initial_pot_val + difference
+
+            ai_commited_chips += round(updated_pot_val / 2)
+            ai_stack -= round(updated_pot_val / 2)
+            pot = updated_pot_val + round(updated_pot_val / 2)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+    elif ai_hand_rank > 14 and ai_commited_chips == user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 65:
+            session["post_turn_raise_count"] += 1
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += round(initial_pot_val / 3)
+            ai_stack -= round(initial_pot_val / 3)
+            pot = initial_pot_val + round(initial_pot_val / 3)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+        elif rnum > 65:
+            active_pot.ai_post_turn = json.dumps(0)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+    elif ai_hand_rank > 14 and ai_commited_chips < user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 10:
+            return json.dumps("xoxo")
+
+        elif rnum > 10 and rnum <= 55:
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(initial_pot_val + difference)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+        elif rnum > 55:
+            if session["post_turn_raise_count"] <= 3:
+                session["post_turn_raise_count"] += 1
+
+            elif session["post_turn_raise_count"] > 3:
+                rnum = random.randint(1, 100)
+                if rnum <= 95:
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    initial_pot_val = int(active_pot.total_chips)
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+
+                    active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(initial_pot_val + difference)
+                    db.session.commit()
+
+                    return active_pot.ai_post_turn
+                else:
+                    return json.dumps("xoxo")
+
+            difference = user_commited_chips - ai_commited_chips
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += difference
+            ai_stack -= difference
+
+            updated_pot_val = initial_pot_val + difference
+
+            ai_commited_chips += round(updated_pot_val / 3)
+            ai_stack -= round(updated_pot_val / 3)
+            pot = updated_pot_val + round(updated_pot_val / 3)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_turn = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_turn
+
+
+@app.route("/texas_hold_em/user_post_turn_call", methods=["GET", "POST"])
+def user_post_turn_call():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    ai_commited_chips = int(active_pot.ai_post_turn)
+
+    if active_pot.user_post_turn:
+        user_commited_chips = int(active_pot.user_post_turn)
+    else:
+        user_commited_chips = 0
+
+    if user_commited_chips < ai_commited_chips:
+
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
+
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        active_pot.user_post_turn = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+        db.session.commit()
+
+        return active_pot.user_post_turn
+
+
+@app.route("/texas_hold_em/user_post_turn_check", methods=["GET", "POST"])
+def user_post_turn_check():
+    user_id = session["user_id"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    active_pot.user_post_turn = json.dumps(0)
+    db.session.commit()
+
+    return active_pot.user_post_turn
+
+
 @app.route("/texas_hold_em/river", methods=["GET", "POST"])
 def get_river():
     user_id = session["user_id"]
@@ -1070,6 +1325,267 @@ def get_river():
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
 
     return saved_hand.river
+
+
+@app.route("/texas_hold_em/ai_post_river_decision", methods=["GET", "POST"])
+def ai_post_river_action():
+    user_id = session["user_id"]
+    ai_stack = session["ai_stack"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    if active_pot.ai_post_river:
+        ai_commited_chips = int(active_pot.ai_post_river)
+    else:
+        ai_commited_chips = 0
+
+    if active_pot.user_post_river:
+        user_commited_chips = int(active_pot.user_post_river)
+    else:
+        user_commited_chips = 0
+
+    ai_json_hole_cards = saved_hand.computer_opp_cards
+    ai_hole_cards = []
+    for card in json.loads(ai_json_hole_cards):
+        ai_hole_cards.append(Card(card[1], card[0]))
+
+    json_flop = saved_hand.flop
+    flop = []
+    for card in json.loads(json_flop):
+        flop.append(Card(card[1], card[0]))
+
+    json_turn = saved_hand.turn
+    turn = []
+    for card in json.loads(json_turn):
+        turn.append(Card(card[1], card[0]))
+
+    json_river = saved_hand.river
+    river = []
+    for card in json.loads(json_river):
+        river.append(Card(card[1], card[0]))
+
+    ai_post_river_hand = ai_hole_cards + flop + turn + river
+    ai_hand_rank = check_straight_flush(ai_post_river_hand)
+
+    if ai_hand_rank < 14 and ai_commited_chips == user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 90:
+            active_pot.ai_post_river = json.dumps(0)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+        if rnum > 90:
+            pot = int(active_pot.total_chips)
+
+            ai_commited_chips += round(pot / 3)
+            ai_stack -= round(pot / 3)
+            pot += round(pot / 3)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_river = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+    elif ai_hand_rank < 14 and ai_commited_chips < user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 85:
+            return json.dumps("xoxo")
+
+        if rnum > 85 and rnum <= 95:
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_river = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(initial_pot_val + difference)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+        if rnum > 95:
+            if session["post_river_raise_count"] <= 3:
+                session["post_river_raise_count"] += 1
+
+            elif session["post_river_raise_count"] > 3:
+                rnum = random.randint(1, 100)
+                if rnum <= 5:
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    initial_pot_val = int(active_pot.total_chips)
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+
+                    active_pot.ai_post_river = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(initial_pot_val + difference)
+                    db.session.commit()
+
+                    return active_pot.ai_post_river
+                else:
+                    return json.dumps("xoxo")
+
+            difference = user_commited_chips - ai_commited_chips
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += difference
+            ai_stack -= difference
+
+            updated_pot_val = initial_pot_val + difference
+
+            ai_commited_chips += round(updated_pot_val / 2)
+            ai_stack -= round(updated_pot_val / 2)
+            pot = updated_pot_val + round(updated_pot_val / 2)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_river = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+    elif ai_hand_rank > 14 and ai_commited_chips == user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 65:
+            session["post_river_raise_count"] += 1
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += round(initial_pot_val / 3)
+            ai_stack -= round(initial_pot_val / 3)
+            pot = initial_pot_val + round(initial_pot_val / 3)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_river = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+        elif rnum > 65:
+            active_pot.ai_post_river = json.dumps(0)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+    elif ai_hand_rank > 14 and ai_commited_chips < user_commited_chips:
+        rnum = random.randint(1, 100)
+        if rnum <= 10:
+            return json.dumps("xoxo")
+
+        elif rnum > 10 and rnum <= 55:
+            difference = user_commited_chips - ai_commited_chips
+            ai_commited_chips += difference
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_stack -= difference
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_river = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(initial_pot_val + difference)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+        elif rnum > 55:
+            if session["post_river_raise_count"] <= 3:
+                session["post_river_raise_count"] += 1
+
+            elif session["post_river_raise_count"] > 3:
+                rnum = random.randint(1, 100)
+                if rnum <= 95:
+                    difference = user_commited_chips - ai_commited_chips
+                    ai_commited_chips += difference
+
+                    initial_pot_val = int(active_pot.total_chips)
+
+                    ai_stack -= difference
+                    session["ai_stack"] = ai_stack
+
+                    active_pot.ai_post_river = json.dumps(ai_commited_chips)
+                    active_pot.total_chips = json.dumps(initial_pot_val + difference)
+                    db.session.commit()
+
+                    return active_pot.ai_post_river
+                else:
+                    return json.dumps("xoxo")
+
+            difference = user_commited_chips - ai_commited_chips
+
+            initial_pot_val = int(active_pot.total_chips)
+
+            ai_commited_chips += difference
+            ai_stack -= difference
+
+            updated_pot_val = initial_pot_val + difference
+
+            ai_commited_chips += round(updated_pot_val / 3)
+            ai_stack -= round(updated_pot_val / 3)
+            pot = updated_pot_val + round(updated_pot_val / 3)
+
+            session["ai_stack"] = ai_stack
+
+            active_pot.ai_post_river = json.dumps(ai_commited_chips)
+            active_pot.total_chips = json.dumps(pot)
+            db.session.commit()
+
+            return active_pot.ai_post_river
+
+
+@app.route("/texas_hold_em/user_post_river_call", methods=["GET", "POST"])
+def user_post_river_call():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    ai_commited_chips = int(active_pot.ai_post_river)
+
+    if active_pot.user_post_river:
+        user_commited_chips = int(active_pot.user_post_river)
+    else:
+        user_commited_chips = 0
+
+    if user_commited_chips < ai_commited_chips:
+
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
+
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        active_pot.user_post_river = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+        db.session.commit()
+
+        return active_pot.user_post_river
+
+
+@app.route("/texas_hold_em/user_post_river_check", methods=["GET", "POST"])
+def user_post_river_check():
+    user_id = session["user_id"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    active_pot.user_post_river = json.dumps(0)
+    db.session.commit()
+
+    return active_pot.user_post_river
 
 
 @app.route("/texas_hold_em/computer_opp_score", methods=["GET", "POST"])

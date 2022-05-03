@@ -630,6 +630,9 @@ revealTurnButton.onclick = function revealTurn(evt) {
   evt.preventDefault();
 
   getTurn();
+
+  revealTurnButton.remove();
+
   async function getTurn() {
     try {
       const res = await axios.get('/texas_hold_em/turn');
@@ -644,21 +647,214 @@ revealTurnButton.onclick = function revealTurn(evt) {
     }
   }
 
-  revealTurnButton.remove();
-  newBtn = document.createElement('button');
-  newBtn.setAttribute('id', 'call-post-turn-btn');
-  newBtn.innerText = 'Call';
-  document.getElementById('user-options').append(newBtn);
-  let callPostTurnButton = document.getElementById('call-post-turn-btn');
-  foldButton.hidden = false;
+  if (document.getElementById('user-name').innerText.includes('dealer')) {
+    console.log('The action is on Cortana.');
 
-  callPostTurnButton.onclick = function keepPlaying(evt) {
-    evt.preventDefault();
-    callPostTurnButton.remove();
-    foldButton.hidden = true;
-    revealRiverButton.hidden = false;
-  };
+    async function cortanaPostTurnDecision() {
+      try {
+        const res = await axios.get('/texas_hold_em/ai_post_turn_decision');
+        console.log(`Cortana decided to fold: ${isNaN(res.data)}`);
+
+        if (isNaN(res.data)) {
+          window.location = '/texas_hold_em/ai_opp_fold';
+        }
+
+        totalCommitedChips =
+          Number(oppCommitedChips.children[1].innerText) + res.data;
+        console.log(`Post-turn AI Chips Commited: 
+        ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+
+        oppCommitedChips.children[1].remove();
+
+        let updateCommited = document.createElement('td');
+        updateCommited.innerText = totalCommitedChips;
+        oppCommitedChips.append(updateCommited);
+
+        updatePot();
+        updateOppStack();
+
+        async function updatePot() {
+          try {
+            const res = await axios.get('/texas_hold_em/update/pot');
+            console.log(`Updated Pot Val: ${res.data}`);
+
+            pot.removeChild(pot.children[1]);
+
+            let updatePot = document.createElement('td');
+            updatePot.innerText = res.data;
+            pot.append(updatePot);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        async function updateOppStack() {
+          try {
+            const res = await axios.get(
+              '/texas_hold_em/update/ai_opp_chip_count'
+            );
+            console.log(`Updated Opp Stack: ${res.data}`);
+
+            oppChipCount.children[1].remove();
+
+            let updateOppStack = document.createElement('td');
+            updateOppStack.innerText = res.data;
+            oppChipCount.append(updateOppStack);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        if (
+          updateCommited.innerText == userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana has decided to check.');
+
+          let postTurnCheckButton = document.createElement('button');
+          postTurnCheckButton.innerText = 'Check';
+          userOptions.append(postTurnCheckButton);
+
+          if (postTurnCheckButton != null) {
+            postTurnCheckButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+
+              postTurnCheck();
+
+              postTurnCheckButton.remove();
+
+              revealRiverButton.hidden = false;
+
+              async function postTurnCheck() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_post_turn_check'
+                  );
+                  console.log(
+                    `[CHECK] Post-turn User Chips Commited: ${res.data}`
+                  );
+                } catch (error) {
+                  console.log(error);
+                }
+              }
+            };
+          }
+        }
+
+        if (
+          updateCommited.innerText > userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana decided to raise.');
+          postTurnRaiseCounter += 1;
+          console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
+
+          foldButton.hidden = false;
+
+          let postTurnCallButton = document.createElement('button');
+          postTurnCallButton.innerText = 'Call';
+          userOptions.append(postTurnCallButton);
+
+          if (postTurnCallButton != null) {
+            postTurnCallButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+
+              postTurnCall();
+
+              foldButton.hidden = true;
+
+              postTurnCallButton.remove();
+
+              revealRiverButton.hidden = false;
+
+              async function postTurnCall() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_post_turn_call'
+                  );
+
+                  totalCommitedChips =
+                    Number(userCommitedChips.children[1].innerText) + res.data;
+
+                  console.log(`Post-turn User Chips Commited: 
+                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+
+                  userCommitedChips.children[1].remove();
+
+                  let updateCommited = document.createElement('td');
+                  updateCommited.innerText = totalCommitedChips;
+                  userCommitedChips.append(updateCommited);
+
+                  updatePot();
+                  updateUserStack();
+
+                  async function updatePot() {
+                    try {
+                      const res = await axios.get('/texas_hold_em/update/pot');
+                      console.log(`Updated Pot Val: ${res.data}`);
+
+                      pot.removeChild(pot.children[1]);
+
+                      let updatePot = document.createElement('td');
+                      updatePot.innerText = res.data;
+                      pot.append(updatePot);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+
+                  async function updateUserStack() {
+                    try {
+                      const res = await axios.get(
+                        '/texas_hold_em/update/user_chip_count'
+                      );
+                      console.log(`Updated User Stack: ${res.data}`);
+
+                      userChipCount.children[1].remove();
+
+                      let updateUserStack = document.createElement('td');
+                      updateUserStack.innerText = res.data;
+                      userChipCount.append(updateUserStack);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+                } catch (error) {
+                  console.log(error);
+                }
+              }
+            };
+          }
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    cortanaPostTurnDecision();
+  } else {
+    console.log('The action is on the active user.');
+    postTurnCheckButton.hidden = false;
+  }
 };
+
+if (postTurnCheckButton != null) {
+  postTurnCheckButton.onclick = function userAction(evt) {
+    evt.preventDefault();
+
+    postTurnCheck();
+
+    foldButton.hidden = true;
+    postTurnCheckButton.remove();
+    revealRiverButton.hidden = false;
+
+    async function postTurnCheck() {
+      try {
+        const res = await axios.get('/texas_hold_em/user_post_turn_check');
+        console.log(`[CHECK] Post-turn User Chips Commited: ${res.data}`);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  };
+}
 
 /* SECTION [4]: POST-RIVER ACTION */
 
@@ -666,6 +862,9 @@ revealRiverButton.onclick = function revealRiver(evt) {
   evt.preventDefault();
 
   getRiver();
+
+  revealRiverButton.remove();
+
   async function getRiver() {
     try {
       const res = await axios.get('/texas_hold_em/river');
@@ -682,21 +881,214 @@ revealRiverButton.onclick = function revealRiver(evt) {
     }
   }
 
-  revealRiverButton.remove();
-  newBtn = document.createElement('button');
-  newBtn.setAttribute('id', 'call-post-river-btn');
-  newBtn.innerText = 'Call';
-  document.getElementById('user-options').append(newBtn);
-  let callPostRiverButton = document.getElementById('call-post-river-btn');
-  foldButton.hidden = false;
+  if (document.getElementById('user-name').innerText.includes('dealer')) {
+    console.log('The action is on Cortana.');
 
-  callPostRiverButton.onclick = function finishTheHand(evt) {
-    evt.preventDefault();
-    callPostRiverButton.remove();
-    foldButton.hidden = true;
-    showdownDiv.hidden = false;
-  };
+    async function cortanaPostRiverDecision() {
+      try {
+        const res = await axios.get('/texas_hold_em/ai_post_river_decision');
+        console.log(`Cortana decided to fold: ${isNaN(res.data)}`);
+
+        if (isNaN(res.data)) {
+          window.location = '/texas_hold_em/ai_opp_fold';
+        }
+
+        totalCommitedChips =
+          Number(oppCommitedChips.children[1].innerText) + res.data;
+        console.log(`Post-river AI Chips Commited: 
+        ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+
+        oppCommitedChips.children[1].remove();
+
+        let updateCommited = document.createElement('td');
+        updateCommited.innerText = totalCommitedChips;
+        oppCommitedChips.append(updateCommited);
+
+        updatePot();
+        updateOppStack();
+
+        async function updatePot() {
+          try {
+            const res = await axios.get('/texas_hold_em/update/pot');
+            console.log(`Updated Pot Val: ${res.data}`);
+
+            pot.removeChild(pot.children[1]);
+
+            let updatePot = document.createElement('td');
+            updatePot.innerText = res.data;
+            pot.append(updatePot);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        async function updateOppStack() {
+          try {
+            const res = await axios.get(
+              '/texas_hold_em/update/ai_opp_chip_count'
+            );
+            console.log(`Updated Opp Stack: ${res.data}`);
+
+            oppChipCount.children[1].remove();
+
+            let updateOppStack = document.createElement('td');
+            updateOppStack.innerText = res.data;
+            oppChipCount.append(updateOppStack);
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        if (
+          updateCommited.innerText == userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana has decided to check.');
+
+          let postRiverCheckButton = document.createElement('button');
+          postRiverCheckButton.innerText = 'Check';
+          userOptions.append(postRiverCheckButton);
+
+          if (postRiverCheckButton != null) {
+            postRiverCheckButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+
+              postRiverCheck();
+
+              postRiverCheckButton.remove();
+
+              showdownDiv.hidden = false;
+
+              async function postRiverCheck() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_post_river_check'
+                  );
+                  console.log(
+                    `[CHECK] Post-river User Chips Commited: ${res.data}`
+                  );
+                } catch (error) {
+                  console.log(error);
+                }
+              }
+            };
+          }
+        }
+
+        if (
+          updateCommited.innerText > userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana decided to raise.');
+          postRiverRaiseCounter += 1;
+          console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
+
+          foldButton.hidden = false;
+
+          let postRiverCallButton = document.createElement('button');
+          postRiverCallButton.innerText = 'Call';
+          userOptions.append(postRiverCallButton);
+
+          if (postRiverCallButton != null) {
+            postRiverCallButton.onclick = function userAction(evt) {
+              evt.preventDefault();
+
+              postRiverCall();
+
+              foldButton.hidden = true;
+
+              postRiverCallButton.remove();
+
+              showdownDiv.hidden = false;
+
+              async function postRiverCall() {
+                try {
+                  const res = await axios.get(
+                    '/texas_hold_em/user_post_river_call'
+                  );
+
+                  totalCommitedChips =
+                    Number(userCommitedChips.children[1].innerText) + res.data;
+
+                  console.log(`Post-river User Chips Commited: 
+                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+
+                  userCommitedChips.children[1].remove();
+
+                  let updateCommited = document.createElement('td');
+                  updateCommited.innerText = totalCommitedChips;
+                  userCommitedChips.append(updateCommited);
+
+                  updatePot();
+                  updateUserStack();
+
+                  async function updatePot() {
+                    try {
+                      const res = await axios.get('/texas_hold_em/update/pot');
+                      console.log(`Updated Pot Val: ${res.data}`);
+
+                      pot.removeChild(pot.children[1]);
+
+                      let updatePot = document.createElement('td');
+                      updatePot.innerText = res.data;
+                      pot.append(updatePot);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+
+                  async function updateUserStack() {
+                    try {
+                      const res = await axios.get(
+                        '/texas_hold_em/update/user_chip_count'
+                      );
+                      console.log(`Updated User Stack: ${res.data}`);
+
+                      userChipCount.children[1].remove();
+
+                      let updateUserStack = document.createElement('td');
+                      updateUserStack.innerText = res.data;
+                      userChipCount.append(updateUserStack);
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  }
+                } catch (error) {
+                  console.log(error);
+                }
+              }
+            };
+          }
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    cortanaPostRiverDecision();
+  } else {
+    console.log('The action is on the active user.');
+    postRiverCheckButton.hidden = false;
+  }
 };
+
+if (postRiverCheckButton != null) {
+  postRiverCheckButton.onclick = function userAction(evt) {
+    evt.preventDefault();
+
+    postRiverCheck();
+
+    foldButton.hidden = true;
+    postRiverCheckButton.remove();
+    showdownDiv.hidden = false;
+
+    async function postRiverCheck() {
+      try {
+        const res = await axios.get('/texas_hold_em/user_post_river_check');
+        console.log(`[CHECK] Post-river User Chips Commited: ${res.data}`);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  };
+}
 
 /* SECTION [5]: SHOWDOWN */
 
