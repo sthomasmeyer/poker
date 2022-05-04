@@ -48,9 +48,7 @@ print(
     f"Chamath's Post-river Hand: {player_one.jsonify_cards(player_one.post_river_hand)}"
 )
 
-print(
-    f"Sack's Post-river Hand: {player_two.jsonify_cards(player_two.post_river_hand)}"
-)
+print(f"Sack's Post-river Hand: {player_two.jsonify_cards(player_two.post_river_hand)}")
 
 ### END of the [test] classes code... COMMENCE hand-rankings ###
 
@@ -232,6 +230,22 @@ def check_four_of_a_kind(hand):
         else:
             card_list.append(i)
 
+    # The following lines of code are designed to evaluate the...
+    # strength of the community cards (specifically, post-turn)...
+    # in a given hand of Texas hold'em.
+    # With this funcitonality built-in, the hand ranking system...
+    # can facilitate judgment of a player's hand relative to the board.
+    if len(hand) == 4:
+        if len(quads) > 0:
+            print(f"Quads on the board: {quads}")
+            # MAX score = 119
+            score = 105 + (quads[0])
+            return score
+        else:
+            return check_three_of_a_kind(hand)
+
+    ### This marks the end of the flop (+) turn evaluation code. ###
+
     if len(quads) > 0:
         print(f"Quads: {quads}")
         print(f"Remaining Cards: {card_list}")
@@ -395,7 +409,7 @@ def check_three_of_a_kind(hand):
 
     # The following lines of code are designed to evaluate the...
     # strength of the community cards (specifically, post-flop and...
-    # post-turn) in a given hand of Texas hold'em. 
+    # post-turn) in a given hand of Texas hold'em.
     # With this funcitonality built-in, the hand ranking system...
     # can facilitate judgment of a player's hand relative to the board.
     if len(hand) == 3:
@@ -406,6 +420,15 @@ def check_three_of_a_kind(hand):
             return score
         else:
             return check_pair(hand)
+
+    if len(hand) == 4:
+        if len(trips) > 0:
+            print(f"Trips on the board: {trips}")
+            # MAX score = 59.13
+            score = 45 + (trips[0] + card_list[0] / 100)
+            return score
+        else:
+            return check_two_pair(hand)
 
     ### This marks the end of the flop / turn evaluation code. ###
 
@@ -439,6 +462,19 @@ def check_two_pair(hand):
         elif sorted_card_vals.count(i) == 1:
             card_list.append(i)
 
+    # The following lines of code are designed to evaluate the...
+    # strength of the community cards (specifically, post-turn)...
+    # in a given hand of Texas hold'em.
+    if len(hand) == 4:
+        if len(pairs) == 4:
+            print(f"TWO-PAIR on the board: {pairs}")
+            # MAX score = 44
+            score = 30 + max(pairs)
+        else:
+            return check_pair(hand)
+
+    ### This marks the end of the flop (+) turn evaluation code. ###
+
     if len(pairs) >= 4:
         print(f"TWO-PAIR: {pairs}")
         print(f"Remaining cards: {card_list}")
@@ -469,7 +505,7 @@ def check_pair(hand):
 
     # The following lines of code are designed to evaluate the...
     # strength of the community cards (specifically, post-flop and...
-    # post-turn) in a given hand of Texas hold'em. 
+    # post-turn) in a given hand of Texas hold'em.
     # With this funcitonality built-in, the hand ranking system...
     # can facilitate judgment of a player's hand relative to the board.
     if len(hand) == 3:
@@ -478,10 +514,22 @@ def check_pair(hand):
             # MAX score = 29.13
             score = 15 + pair[0] + card_list[0] / 100
             return score
-        else: 
+        else:
             print(f"Community Cards: {card_list}")
             # MAX score = 14.XYZ
             score = card_list[0] + card_list[1] / 100 + card_list[2] / 1000
+            return score
+
+    if len(hand) == 4:
+        if len(pair) == 2:
+            print(f"Pair on the board: {pair}")
+            # MAX score = 29.XYZ
+            score = 15 + pair[0] + card_list[0] / 100 + card_list[1] / 1000
+            return score
+        else:
+            print(f"Community Cards: {card_list}")
+            # MAX score = 14.XYZ
+            score = (card_list[0] + card_list[1] / 100 + card_list[2] / 1000 + card_list[3] / 10000)
             return score
 
     ### This marks the end of the flop / turn evaluation code. ###
@@ -535,12 +583,29 @@ for player in players:
     player.hand_ranking = check_straight_flush(player.post_river_hand)
     print(f"{player.hand_ranking} points for {player.name}.")
 
-print(f"FLOPPITY FLOP RANK: {round(check_three_of_a_kind(new_deck.flop))}")
+print(f"Independent Flop Rank: {check_three_of_a_kind(new_deck.flop)}")
 
-if round(check_three_of_a_kind(new_deck.flop)) == round(check_straight_flush(player_two.post_flop_hand)):
+turn = new_deck.flop + new_deck.turn
+
+print (f"Sack's post-turn hand rank: {check_straight_flush(player_two.post_turn_hand)}")
+
+if round(check_three_of_a_kind(new_deck.flop)) == round(
+    check_straight_flush(player_two.post_flop_hand)
+):
     print("Sacks missed the flop.")
-elif round(check_three_of_a_kind(new_deck.flop)) < round(check_straight_flush(player_two.post_flop_hand)):
-    print("The rain-man himself is back.")
+elif round(check_three_of_a_kind(new_deck.flop)) < round(
+    check_straight_flush(player_two.post_flop_hand)
+):
+    print("The rain-man himself is back!")
+
+if round(check_four_of_a_kind(turn)) == round(
+    check_straight_flush(player_two.post_turn_hand)
+):
+    print("Sacks missed the turn.")
+elif round(check_four_of_a_kind(turn)) < round(
+    check_straight_flush(player_two.post_turn_hand)
+):
+    print("Sacks is turning it up!")
 
 if player_one.hand_ranking > player_two.hand_ranking:
     print(f"{player_one.name} wins!")
