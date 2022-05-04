@@ -537,9 +537,9 @@ for player in players:
 
 print(f"FLOPPITY FLOP RANK: {round(check_three_of_a_kind(new_deck.flop))}")
 
-if round(check_three_of_a_kind(new_deck.flop)) ==  round(check_straight_flush(player_two.post_flop_hand)):
+if round(check_three_of_a_kind(new_deck.flop)) == round(check_straight_flush(player_two.post_flop_hand)):
     print("Sacks missed the flop.")
-elif round(check_three_of_a_kind(new_deck.flop)) <  round(check_straight_flush(player_two.post_flop_hand)):
+elif round(check_three_of_a_kind(new_deck.flop)) < round(check_straight_flush(player_two.post_flop_hand)):
     print("The rain-man himself is back.")
 
 if player_one.hand_ranking > player_two.hand_ranking:
