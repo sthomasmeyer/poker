@@ -1,7 +1,5 @@
 from game_elements import Player, Deck, Card
 
-import json
-
 ### The following code is meant to establish [test] classes to play around with. ###
 
 players = []
@@ -23,8 +21,6 @@ for card in player_one.hole_cards:
 for card in player_two.hole_cards:
     print(f"Sacks: {card.value} of {card.suit}")
 
-print(f"Sacks' Pre-flop Hand: {player_two.jsonify_cards(player_two.hole_cards)}")
-
 new_deck.flop_protocol()
 for player in players:
     player.incorporate_flop(new_deck)
@@ -44,11 +40,11 @@ for player in players:
 
 print(f"river: {new_deck.river[0].value} of {new_deck.river[0].suit}")
 
-print(
-    f"Chamath's Post-river Hand: {player_one.jsonify_cards(player_one.post_river_hand)}"
-)
+# print(
+#     f"Chamath's Post-river Hand: {player_one.jsonify_cards(player_one.post_river_hand)}"
+# )
 
-print(f"Sack's Post-river Hand: {player_two.jsonify_cards(player_two.post_river_hand)}")
+# print(f"Sack's Post-river Hand: {player_two.jsonify_cards(player_two.post_river_hand)}")
 
 ### END of the [test] classes code... COMMENCE hand-rankings ###
 
@@ -574,38 +570,13 @@ def check_pair(hand):
         )
         return score
 
+### END of the hand-rankings code. ###
+
+### The following code is meant for informal testing of the hand-ranking system. ###
 
 for player in players:
-    print(f"{player.name}'s pre-flop hand rating: {check_pair(player.hole_cards)}")
-    print(
-        f"{player.name}'s post-flop hand rating: {round(check_straight_flush(player.post_flop_hand))}"
-    )
     player.hand_ranking = check_straight_flush(player.post_river_hand)
     print(f"{player.hand_ranking} points for {player.name}.")
-
-print(f"Independent Flop Rank: {check_three_of_a_kind(new_deck.flop)}")
-
-turn = new_deck.flop + new_deck.turn
-
-print (f"Sack's post-turn hand rank: {check_straight_flush(player_two.post_turn_hand)}")
-
-if round(check_three_of_a_kind(new_deck.flop)) == round(
-    check_straight_flush(player_two.post_flop_hand)
-):
-    print("Sacks missed the flop.")
-elif round(check_three_of_a_kind(new_deck.flop)) < round(
-    check_straight_flush(player_two.post_flop_hand)
-):
-    print("The rain-man himself is back!")
-
-if round(check_four_of_a_kind(turn)) == round(
-    check_straight_flush(player_two.post_turn_hand)
-):
-    print("Sacks missed the turn.")
-elif round(check_four_of_a_kind(turn)) < round(
-    check_straight_flush(player_two.post_turn_hand)
-):
-    print("Sacks is turning it up!")
 
 if player_one.hand_ranking > player_two.hand_ranking:
     print(f"{player_one.name} wins!")
