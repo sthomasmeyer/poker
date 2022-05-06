@@ -2426,7 +2426,7 @@ def drew_hand(user_id):
     int_pot = int(active_pot.total_chips)
     adjusted_user_capital = math.trunc(int(user.capital) + int(int_pot / 2))
     user.capital = json.dumps(adjusted_user_capital)
-    adjusted_ai_stack = ai_stack + (int_pot / 2)
+    adjusted_ai_stack = math.trunc(ai_stack + (int_pot / 2))
     session["ai_stack"] = adjusted_ai_stack
     db.session.commit()
 

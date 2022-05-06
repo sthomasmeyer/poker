@@ -34,7 +34,6 @@ const showdownDrawButton = document.getElementById('showdown-draw-btn');
 // The following variables capture elements related to...
 // the active-user.
 const userChipCount = document.getElementById('user-chip-count');
-const userInitialStack = document.getElementById('user-initial-stack');
 const userCommitedChips = document.getElementById('user-commited');
 const userBlind = document.getElementById('user-blind');
 const userScore = document.getElementById('user-score');
@@ -48,13 +47,11 @@ const foldButton = document.getElementById('fold-btn');
 // the community cards (+) the pot.
 const communityCards = document.getElementById('community-cards');
 const pot = document.getElementById('pot');
-const sumOfBlinds = document.getElementById('sum-of-blinds');
 
 // The following variables capture elements related to...
 // the ai-opponent.
 const oppHand = document.getElementById('ai-opp-hand');
 const oppChipCount = document.getElementById('ai-opp-chip-count');
-const oppInitialStack = document.getElementById('ai-opp-initial-stack');
 const oppCommitedChips = document.getElementById('ai-opp-commited');
 const oppBlind = document.getElementById('ai-opp-blind');
 const oppScore = document.getElementById('ai-opp-score');
@@ -66,7 +63,98 @@ let postFlopRaiseCounter = 0;
 let postTurnRaiseCounter = 0;
 let postRiverRaiseCounter = 0;
 
-/* SECTION [1]: PRE-FLOP ACTION */
+/* SECTION [1]: VITAL FUNCTIONS */
+
+async function updatePot() {
+  try {
+    const res = await axios.get('/texas_hold_em/update/pot');
+    console.log(`Updated Pot Val: ${res.data}`);
+    // Remove the DOM-element associated w/ the...
+    // value of the pot:
+    pot.removeChild(pot.children[1]);
+    // Replace it with the updated value.
+    let updatePot = document.createElement('td');
+    updatePot.innerText = res.data;
+    pot.append(updatePot);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function updateUserStack() {
+  try {
+    const res = await axios.get('/texas_hold_em/update/user_chip_count');
+    console.log(`Updated User Stack: ${res.data}`);
+    // Remove the DOM-element associated w/ the...
+    // initial value of the user's stack:
+    userChipCount.children[1].remove();
+    // Replace it with the updated value.
+    let updateUserStack = document.createElement('td');
+    updateUserStack.innerText = res.data;
+    userChipCount.append(updateUserStack);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function updateOppStack() {
+  try {
+    const res = await axios.get('/texas_hold_em/update/ai_opp_chip_count');
+    console.log(`Updated Opp Stack: ${res.data}`);
+    // Remove the DOM-element associated w/ the...
+    // initial value of the ai-opp's stack:
+    oppChipCount.children[1].remove();
+    // Replace it with the updated value:
+    let updateOppStack = document.createElement('td');
+    updateOppStack.innerText = res.data;
+    oppChipCount.append(updateOppStack);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function getOppCards() {
+  try {
+    const res = await axios.get('/texas_hold_em/ai_opp_cards');
+    console.log(`Opp Hand: ${res.data}`);
+    const computerHand = [];
+    res.data.forEach((element) =>
+      computerHand.push(element.join().replace(',', ''))
+    );
+    console.log(computerHand);
+    displayHand = document.createElement('td');
+    let i = 0;
+    for (i = 0; i < computerHand.length; i++) {
+      displayHand.innerText += `${computerHand[i]} `;
+    }
+    oppHand.append(displayHand);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function getScore(path, anchor) {
+  try {
+    const res = await axios.get(path);
+    displayScore = document.createElement('td');
+    displayScore.innerText = res.data;
+    anchor.append(displayScore);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+function updateCommitedChips(anchor, val) {
+  // Remove the DOM-element associated w/ the...
+  // initial value of player's commited chips.
+  anchor.children[1].remove();
+  // Replace it with the updated value.
+  let updatedVal = document.createElement('td');
+  updatedVal.innerText = val;
+  anchor.append(updatedVal);
+}
+
+/* SECTION [2]: PRE-FLOP ACTION */
 
 // This [action()] function is triggered "onload"...
 window.onload = function action() {
@@ -96,59 +184,15 @@ window.onload = function action() {
 
         console.log(`AI Chips Commited: ${res.data}`);
 
-        // Remove the DOM-element associated w/ the...
-        // ai-opp's blind:
-        oppBlind.remove();
-        // Replace it with the updated number of chips...
-        // they've chosen to commit:
-        let updateCommited = document.createElement('td');
-        updateCommited.innerText = `${res.data}`;
-        oppCommitedChips.append(updateCommited);
+        // Update the value associated w/ the number of...
+        // chips the ai-opp has commited.
+        updateCommitedChips(oppCommitedChips, res.data);
 
         // Execute [updatePot()] + [updateOppStack()] functions.
         updatePot();
         updateOppStack();
 
-        // The total number of chips in the pot is impacted...
-        // by the ai-opp's decision, so it must be updated.
-        async function updatePot() {
-          try {
-            const res = await axios.get('/texas_hold_em/update/pot');
-            console.log(`Updated Pot Val: ${res.data}`);
-
-            // Remove the DOM-element associated w/ the...
-            // initial value of the pot:
-            sumOfBlinds.remove();
-            // Replace it with the updated value:
-            let updatePot = document.createElement('td');
-            updatePot.innerText = res.data;
-            pot.append(updatePot);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        // The number of chips in the ai-opp's stack is...
-        // impacted by their decision, so it must be updated.
-        async function updateOppStack() {
-          try {
-            const res = await axios.get(
-              '/texas_hold_em/update/ai_opp_chip_count'
-            );
-            console.log(`Updated Opp Stack: ${res.data}`);
-            // Remove the DOM-element associated w/ the...
-            // initial value of the ai-opp's stack:
-            oppInitialStack.remove();
-            // Replace it with the updated value:
-            let updateOppStack = document.createElement('td');
-            updateOppStack.innerText = res.data;
-            oppChipCount.append(updateOppStack);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        if (updateCommited.innerText == userBlind.innerText) {
+        if (oppCommitedChips.children[1].innerText == userBlind.innerText) {
           console.log('Cortana decided to call.');
           // If Cortana calls, then the active-user can check.
           let preFlopCheckButton = document.createElement('button');
@@ -164,17 +208,15 @@ window.onload = function action() {
           if (preFlopCheckButton != null) {
             preFlopCheckButton.onclick = function userAction(evt) {
               evt.preventDefault();
-
-              // Don't forget to delete this [preFlopCheckButton].
+              // Delete this [preFlopCheckButton].
               preFlopCheckButton.remove();
-              // If the user decides to check, then...
-              // display the [revealFlop] button.
+              // Display the [revealFlop] button.
               revealFlopButton.hidden = false;
             };
           }
         }
 
-        if (updateCommited.innerText > userBlind.innerText) {
+        if (oppCommitedChips.children[1].innerText > userBlind.innerText) {
           console.log('Cortana decided to raise.');
 
           preFlopRaiseCounter += 1;
@@ -207,50 +249,10 @@ window.onload = function action() {
                     '/texas_hold_em/user_pre_flop_call'
                   );
                   console.log(`User Chips Commited: ${res.data}`);
-                  userBlind.remove();
-                  let updateCommited = document.createElement('td');
-                  updateCommited.innerText = `${res.data}`;
-                  userCommitedChips.append(updateCommited);
+
+                  updateCommitedChips(userCommitedChips, res.data);
                   updatePot();
                   updateUserStack();
-
-                  // The total number of chips in the pot is impacted...
-                  // by the active-user's decision, so it must be updated.
-                  async function updatePot() {
-                    try {
-                      const res = await axios.get('/texas_hold_em/update/pot');
-                      console.log(`Updated Pot Val: ${res.data}`);
-                      // Remove the DOM-element associated w/ the...
-                      // value of the pot:
-                      pot.removeChild(pot.children[1]);
-                      // Replace it with the updated value.
-                      let updatePot = document.createElement('td');
-                      updatePot.innerText = res.data;
-                      pot.append(updatePot);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
-
-                  // The number of chips in the active-user's stack is...
-                  // impacted by their decision, so it must be updated.
-                  async function updateUserStack() {
-                    try {
-                      const res = await axios.get(
-                        '/texas_hold_em/update/user_chip_count'
-                      );
-                      console.log(`Updated User Stack: ${res.data}`);
-                      // Remove the DOM-element associated w/ the...
-                      // initial value of the ai-opp's stack:
-                      userInitialStack.remove();
-                      // Replace it with the updated value.
-                      let updateUserStack = document.createElement('td');
-                      updateUserStack.innerText = res.data;
-                      userChipCount.append(updateUserStack);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
                 } catch (error) {
                   console.log(error);
                 }
@@ -288,40 +290,10 @@ if (preFlopCallButton != null) {
       try {
         const res = await axios.get('/texas_hold_em/user_pre_flop_call');
         console.log(`User Chips Commited: ${res.data}`);
-        userBlind.remove();
-        let updateCommited = document.createElement('td');
-        updateCommited.innerText = `${res.data}`;
-        userCommitedChips.append(updateCommited);
+
+        updateCommitedChips(userCommitedChips, res.data);
         updatePot();
         updateUserStack();
-
-        async function updatePot() {
-          try {
-            const res = await axios.get('/texas_hold_em/update/pot');
-            console.log(`Updated Pot Val: ${res.data}`);
-            sumOfBlinds.remove();
-            let updatePot = document.createElement('td');
-            updatePot.innerText = res.data;
-            pot.append(updatePot);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        async function updateUserStack() {
-          try {
-            const res = await axios.get(
-              '/texas_hold_em/update/user_chip_count'
-            );
-            console.log(`Updated User Stack: ${res.data}`);
-            userInitialStack.remove();
-            let updateUserStack = document.createElement('td');
-            updateUserStack.innerText = res.data;
-            userChipCount.append(updateUserStack);
-          } catch (error) {
-            console.log(error);
-          }
-        }
       } catch (error) {
         console.log(error);
       }
@@ -329,7 +301,7 @@ if (preFlopCallButton != null) {
   };
 }
 
-/* SECTION [2]: POST-FLOP ACTION */
+/* SECTION [3]: POST-FLOP ACTION */
 
 revealFlopButton.onclick = function revealFlop(evt) {
   evt.preventDefault();
@@ -389,62 +361,18 @@ revealFlopButton.onclick = function revealFlop(evt) {
         console.log(`Post-flop AI Chips Commited: 
         ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
 
-        // Remove the (outdated) DOM-element associated...
-        // w/ the ai-opp's number of commited chips:
-        oppCommitedChips.children[1].remove();
-        // Replace it with the updated number of chips...
-        // they've chosen to commit:
-        let updateCommited = document.createElement('td');
-        updateCommited.innerText = totalCommitedChips;
-        oppCommitedChips.append(updateCommited);
-
+        // Update the value associated w/ the number of...
+        // chips the ai-opp has commited.
+        updateCommitedChips(oppCommitedChips, totalCommitedChips);
         // Execute [updatePot()] + [updateOppStack()] functions.
         updatePot();
         updateOppStack();
 
-        // The total number of chips in the pot is impacted...
-        // by the ai-opp's decision, so it must be updated.
-        async function updatePot() {
-          try {
-            const res = await axios.get('/texas_hold_em/update/pot');
-            console.log(`Updated Pot Val: ${res.data}`);
-
-            // Remove the (outdated) DOM-element associated...
-            // w/ the value of the pot:
-            pot.removeChild(pot.children[1]);
-            // Replace it with the updated value:
-            let updatePot = document.createElement('td');
-            updatePot.innerText = res.data;
-            pot.append(updatePot);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        // The number of chips in the ai-opp's stack is...
-        // impacted by their decision, so it must be updated.
-        async function updateOppStack() {
-          try {
-            const res = await axios.get(
-              '/texas_hold_em/update/ai_opp_chip_count'
-            );
-            console.log(`Updated Opp Stack: ${res.data}`);
-            // Remove the (outdated) DOM-element associated
-            // w/ the value of the ai-opp's stack:
-            oppChipCount.children[1].remove();
-            // Replace it with the updated value:
-            let updateOppStack = document.createElement('td');
-            updateOppStack.innerText = res.data;
-            oppChipCount.append(updateOppStack);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
         // This [if]-statement is designed to check whether...
         // or not the ai-opp has checked.
         if (
-          updateCommited.innerText == userCommitedChips.children[1].innerText
+          oppCommitedChips.children[1].innerText ==
+          userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana has decided to check.');
           // If Cortana checks, then the active-user can check.
@@ -462,7 +390,6 @@ revealFlopButton.onclick = function revealFlop(evt) {
 
               // Execute the asynchronous [postFlopCheck()] function.
               postFlopCheck();
-
               // Don't forget to delete this [postFlopCheckbutton].
               postFlopCheckButton.remove();
               // If the user decides to check, then...
@@ -486,7 +413,8 @@ revealFlopButton.onclick = function revealFlop(evt) {
         }
 
         if (
-          updateCommited.innerText > userCommitedChips.children[1].innerText
+          oppCommitedChips.children[1].innerText >
+          userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
           postFlopRaiseCounter += 1;
@@ -506,13 +434,12 @@ revealFlopButton.onclick = function revealFlop(evt) {
             postFlopCallButton.onclick = function userAction(evt) {
               evt.preventDefault();
 
-              // Execute the asynchronous [preFlopCall()] function.
+              // Execute the asynchronous [postFlopCall()] function.
               postFlopCall();
-
               // If the user chooses to call, then take away the...
               // option to fold, and display the [revealFlopButton].
               foldButton.hidden = true;
-              // Don't forget to delete this [preFlopCallbutton].
+              // Don't forget to delete this [postFlopCallbutton].
               postFlopCallButton.remove();
               // If the user decides to call, then...
               // display the [revealTurn] button.
@@ -530,55 +457,9 @@ revealFlopButton.onclick = function revealFlop(evt) {
                   console.log(`Post-flop User Chips Commited: 
                   ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
 
-                  // Remove the (outdated) DOM-element associated...
-                  // w/ the ai-opp's number of commited chips:
-                  userCommitedChips.children[1].remove();
-                  // Replace it with the updated number of chips...
-                  // they've chosen to commit:
-                  let updateCommited = document.createElement('td');
-                  updateCommited.innerText = totalCommitedChips;
-                  userCommitedChips.append(updateCommited);
-
+                  updateCommitedChips(userCommitedChips, totalCommitedChips);
                   updatePot();
                   updateUserStack();
-
-                  // The total number of chips in the pot is impacted...
-                  // by the active-user's decision, so it must be updated.
-                  async function updatePot() {
-                    try {
-                      const res = await axios.get('/texas_hold_em/update/pot');
-                      console.log(`Updated Pot Val: ${res.data}`);
-                      // Remove the DOM-element associated w/ the...
-                      // value of the pot:
-                      pot.removeChild(pot.children[1]);
-                      // Replace it with the updated value.
-                      let updatePot = document.createElement('td');
-                      updatePot.innerText = res.data;
-                      pot.append(updatePot);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
-
-                  // The number of chips in the active-user's stack is...
-                  // impacted by their decision, so it must be updated.
-                  async function updateUserStack() {
-                    try {
-                      const res = await axios.get(
-                        '/texas_hold_em/update/user_chip_count'
-                      );
-                      console.log(`Updated User Stack: ${res.data}`);
-                      // Remove the DOM-element associated w/ the...
-                      // initial value of the ai-opp's stack:
-                      userChipCount.children[1].remove();
-                      // Replace it with the updated value.
-                      let updateUserStack = document.createElement('td');
-                      updateUserStack.innerText = res.data;
-                      userChipCount.append(updateUserStack);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
                 } catch (error) {
                   console.log(error);
                 }
@@ -605,7 +486,6 @@ if (postFlopCheckButton != null) {
 
     // Execute the asynchronous [postFlopCheck()] function.
     postFlopCheck();
-
     // If the user chooses to check, then take away the...
     // option to fold, and display the [revealTurnButton].
     foldButton.hidden = true;
@@ -624,14 +504,13 @@ if (postFlopCheckButton != null) {
   };
 }
 
-/* SECTION [3]: POST-TURN ACTION */
+/* SECTION [4]: POST-TURN ACTION */
 
 revealTurnButton.onclick = function revealTurn(evt) {
   evt.preventDefault();
 
-  getTurn();
-
   revealTurnButton.remove();
+  getTurn();
 
   async function getTurn() {
     try {
@@ -664,49 +543,13 @@ revealTurnButton.onclick = function revealTurn(evt) {
         console.log(`Post-turn AI Chips Commited: 
         ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
 
-        oppCommitedChips.children[1].remove();
-
-        let updateCommited = document.createElement('td');
-        updateCommited.innerText = totalCommitedChips;
-        oppCommitedChips.append(updateCommited);
-
+        updateCommitedChips(oppCommitedChips, totalCommitedChips);
         updatePot();
         updateOppStack();
 
-        async function updatePot() {
-          try {
-            const res = await axios.get('/texas_hold_em/update/pot');
-            console.log(`Updated Pot Val: ${res.data}`);
-
-            pot.removeChild(pot.children[1]);
-
-            let updatePot = document.createElement('td');
-            updatePot.innerText = res.data;
-            pot.append(updatePot);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        async function updateOppStack() {
-          try {
-            const res = await axios.get(
-              '/texas_hold_em/update/ai_opp_chip_count'
-            );
-            console.log(`Updated Opp Stack: ${res.data}`);
-
-            oppChipCount.children[1].remove();
-
-            let updateOppStack = document.createElement('td');
-            updateOppStack.innerText = res.data;
-            oppChipCount.append(updateOppStack);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
         if (
-          updateCommited.innerText == userCommitedChips.children[1].innerText
+          oppCommitedChips.children[1].innerText ==
+          userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana has decided to check.');
 
@@ -718,10 +561,8 @@ revealTurnButton.onclick = function revealTurn(evt) {
             postTurnCheckButton.onclick = function userAction(evt) {
               evt.preventDefault();
 
-              postTurnCheck();
-
               postTurnCheckButton.remove();
-
+              postTurnCheck();
               revealRiverButton.hidden = false;
 
               async function postTurnCheck() {
@@ -741,7 +582,8 @@ revealTurnButton.onclick = function revealTurn(evt) {
         }
 
         if (
-          updateCommited.innerText > userCommitedChips.children[1].innerText
+          oppCommitedChips.children[1].innerText >
+          userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
           postTurnRaiseCounter += 1;
@@ -757,13 +599,10 @@ revealTurnButton.onclick = function revealTurn(evt) {
             postTurnCallButton.onclick = function userAction(evt) {
               evt.preventDefault();
 
-              postTurnCall();
-
-              foldButton.hidden = true;
-
               postTurnCallButton.remove();
-
+              postTurnCall();
               revealRiverButton.hidden = false;
+              foldButton.hidden = true;
 
               async function postTurnCall() {
                 try {
@@ -777,46 +616,9 @@ revealTurnButton.onclick = function revealTurn(evt) {
                   console.log(`Post-turn User Chips Commited: 
                   ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
 
-                  userCommitedChips.children[1].remove();
-
-                  let updateCommited = document.createElement('td');
-                  updateCommited.innerText = totalCommitedChips;
-                  userCommitedChips.append(updateCommited);
-
+                  updateCommitedChips(userCommitedChips, totalCommitedChips);
                   updatePot();
                   updateUserStack();
-
-                  async function updatePot() {
-                    try {
-                      const res = await axios.get('/texas_hold_em/update/pot');
-                      console.log(`Updated Pot Val: ${res.data}`);
-
-                      pot.removeChild(pot.children[1]);
-
-                      let updatePot = document.createElement('td');
-                      updatePot.innerText = res.data;
-                      pot.append(updatePot);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
-
-                  async function updateUserStack() {
-                    try {
-                      const res = await axios.get(
-                        '/texas_hold_em/update/user_chip_count'
-                      );
-                      console.log(`Updated User Stack: ${res.data}`);
-
-                      userChipCount.children[1].remove();
-
-                      let updateUserStack = document.createElement('td');
-                      updateUserStack.innerText = res.data;
-                      userChipCount.append(updateUserStack);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
                 } catch (error) {
                   console.log(error);
                 }
@@ -839,11 +641,10 @@ if (postTurnCheckButton != null) {
   postTurnCheckButton.onclick = function userAction(evt) {
     evt.preventDefault();
 
-    postTurnCheck();
-
-    foldButton.hidden = true;
     postTurnCheckButton.remove();
+    postTurnCheck();
     revealRiverButton.hidden = false;
+    foldButton.hidden = true;
 
     async function postTurnCheck() {
       try {
@@ -856,7 +657,7 @@ if (postTurnCheckButton != null) {
   };
 }
 
-/* SECTION [4]: POST-RIVER ACTION */
+/* SECTION [5]: POST-RIVER ACTION */
 
 revealRiverButton.onclick = function revealRiver(evt) {
   evt.preventDefault();
@@ -898,49 +699,13 @@ revealRiverButton.onclick = function revealRiver(evt) {
         console.log(`Post-river AI Chips Commited: 
         ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
 
-        oppCommitedChips.children[1].remove();
-
-        let updateCommited = document.createElement('td');
-        updateCommited.innerText = totalCommitedChips;
-        oppCommitedChips.append(updateCommited);
-
+        updateCommitedChips(oppCommitedChips, totalCommitedChips);
         updatePot();
         updateOppStack();
 
-        async function updatePot() {
-          try {
-            const res = await axios.get('/texas_hold_em/update/pot');
-            console.log(`Updated Pot Val: ${res.data}`);
-
-            pot.removeChild(pot.children[1]);
-
-            let updatePot = document.createElement('td');
-            updatePot.innerText = res.data;
-            pot.append(updatePot);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        async function updateOppStack() {
-          try {
-            const res = await axios.get(
-              '/texas_hold_em/update/ai_opp_chip_count'
-            );
-            console.log(`Updated Opp Stack: ${res.data}`);
-
-            oppChipCount.children[1].remove();
-
-            let updateOppStack = document.createElement('td');
-            updateOppStack.innerText = res.data;
-            oppChipCount.append(updateOppStack);
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
         if (
-          updateCommited.innerText == userCommitedChips.children[1].innerText
+          oppCommitedChips.children[1].innerText ==
+          userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana has decided to check.');
 
@@ -952,10 +717,8 @@ revealRiverButton.onclick = function revealRiver(evt) {
             postRiverCheckButton.onclick = function userAction(evt) {
               evt.preventDefault();
 
-              postRiverCheck();
-
               postRiverCheckButton.remove();
-
+              postRiverCheck();
               showdownDiv.hidden = false;
 
               async function postRiverCheck() {
@@ -975,7 +738,8 @@ revealRiverButton.onclick = function revealRiver(evt) {
         }
 
         if (
-          updateCommited.innerText > userCommitedChips.children[1].innerText
+          oppCommitedChips.children[1].innerText >
+          userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
           postRiverRaiseCounter += 1;
@@ -991,13 +755,10 @@ revealRiverButton.onclick = function revealRiver(evt) {
             postRiverCallButton.onclick = function userAction(evt) {
               evt.preventDefault();
 
-              postRiverCall();
-
-              foldButton.hidden = true;
-
               postRiverCallButton.remove();
-
+              postRiverCall();
               showdownDiv.hidden = false;
+              foldButton.hidden = true;
 
               async function postRiverCall() {
                 try {
@@ -1011,46 +772,9 @@ revealRiverButton.onclick = function revealRiver(evt) {
                   console.log(`Post-river User Chips Commited: 
                   ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
 
-                  userCommitedChips.children[1].remove();
-
-                  let updateCommited = document.createElement('td');
-                  updateCommited.innerText = totalCommitedChips;
-                  userCommitedChips.append(updateCommited);
-
+                  updateCommitedChips(userCommitedChips, totalCommitedChips);
                   updatePot();
                   updateUserStack();
-
-                  async function updatePot() {
-                    try {
-                      const res = await axios.get('/texas_hold_em/update/pot');
-                      console.log(`Updated Pot Val: ${res.data}`);
-
-                      pot.removeChild(pot.children[1]);
-
-                      let updatePot = document.createElement('td');
-                      updatePot.innerText = res.data;
-                      pot.append(updatePot);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
-
-                  async function updateUserStack() {
-                    try {
-                      const res = await axios.get(
-                        '/texas_hold_em/update/user_chip_count'
-                      );
-                      console.log(`Updated User Stack: ${res.data}`);
-
-                      userChipCount.children[1].remove();
-
-                      let updateUserStack = document.createElement('td');
-                      updateUserStack.innerText = res.data;
-                      userChipCount.append(updateUserStack);
-                    } catch (error) {
-                      console.log(error);
-                    }
-                  }
                 } catch (error) {
                   console.log(error);
                 }
@@ -1073,11 +797,10 @@ if (postRiverCheckButton != null) {
   postRiverCheckButton.onclick = function userAction(evt) {
     evt.preventDefault();
 
-    postRiverCheck();
-
-    foldButton.hidden = true;
     postRiverCheckButton.remove();
+    postRiverCheck();
     showdownDiv.hidden = false;
+    foldButton.hidden = true;
 
     async function postRiverCheck() {
       try {
@@ -1090,11 +813,10 @@ if (postRiverCheckButton != null) {
   };
 }
 
-/* SECTION [5]: SHOWDOWN */
+/* SECTION [6]: SHOWDOWN */
 
 // This [if]-statement is designed to check whether...
-// or not the active-user has WON the hand, and...
-// if they have, then the appropriate steps are taken.
+// or not the active-user has WON the hand.
 if (showdownWinButton != null) {
   showdownWinButton.onclick = function showdown(evt) {
     evt.preventDefault();
@@ -1103,54 +825,9 @@ if (showdownWinButton != null) {
     }, 1000);
     showdownWinButton.remove();
 
-    async function getOppCards() {
-      try {
-        const res = await axios.get('/texas_hold_em/ai_opp_cards');
-        console.log(`Opp Hand: ${res.data}`);
-        const computerHand = [];
-        res.data.forEach((element) =>
-          computerHand.push(element.join().replace(',', ''))
-        );
-        console.log(computerHand);
-        displayHand = document.createElement('td');
-        let i = 0;
-        for (i = 0; i < computerHand.length; i++) {
-          displayHand.innerText += `${computerHand[i]} `;
-        }
-        oppHand.append(displayHand);
-      } catch (error) {
-        console.log(error);
-      }
-    }
     getOppCards();
-
-    async function getUserScore() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_score');
-        console.log(`User Score: ${res.data}`);
-        displayScore = document.createElement('td');
-        displayScore.innerText = `${res.data}`;
-        userScore.append(displayScore);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getUserScore();
-
-    async function getOppScore() {
-      try {
-        const res = await axios.get('/texas_hold_em/computer_opp_score');
-        console.log(`Opp Score: ${res.data}`);
-        displayScore = document.createElement('td');
-        if (res.data > 1) {
-          displayScore.innerText = res.data;
-          oppScore.append(displayScore);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getOppScore();
+    getScore('/texas_hold_em/user_score', userScore);
+    getScore('/texas_hold_em/computer_opp_score', oppScore);
 
     setTimeout(() => {
       alert(`
@@ -1162,8 +839,7 @@ if (showdownWinButton != null) {
 }
 
 // This [if]-statement is designed to check whether...
-// or not the active-user has LOST the hand, and...
-// if they have, then the appropriate steps are taken.
+// or not the active-user has LOST the hand.
 if (showdownLossButton != null) {
   showdownLossButton.onclick = function showdown(evt) {
     evt.preventDefault();
@@ -1172,54 +848,9 @@ if (showdownLossButton != null) {
     }, 1000);
     showdownLossButton.remove();
 
-    async function getOppCards() {
-      try {
-        const res = await axios.get('/texas_hold_em/ai_opp_cards');
-        console.log(`Opp Hand: ${res.data}`);
-        const computerHand = [];
-        res.data.forEach((element) =>
-          computerHand.push(element.join().replace(',', ''))
-        );
-        console.log(computerHand);
-        displayHand = document.createElement('td');
-        let i = 0;
-        for (i = 0; i < computerHand.length; i++) {
-          displayHand.innerText += `${computerHand[i]} `;
-        }
-        oppHand.append(displayHand);
-      } catch (error) {
-        console.log(error);
-      }
-    }
     getOppCards();
-
-    async function getUserScore() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_score');
-        console.log(`User Score: ${res.data}`);
-        displayScore = document.createElement('td');
-        displayScore.innerText = `${res.data}`;
-        userScore.append(displayScore);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getUserScore();
-
-    async function getOppScore() {
-      try {
-        const res = await axios.get('/texas_hold_em/computer_opp_score');
-        console.log(`Opp Score: ${res.data}`);
-        displayScore = document.createElement('td');
-        if (res.data > 1) {
-          displayScore.innerText = res.data;
-          oppScore.append(displayScore);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getOppScore();
+    getScore('/texas_hold_em/user_score', userScore);
+    getScore('/texas_hold_em/computer_opp_score', oppScore);
 
     setTimeout(() => {
       alert(`
@@ -1240,54 +871,9 @@ if (showdownDrawButton != null) {
     }, 1000);
     showdownDrawButton.remove();
 
-    async function getOppCards() {
-      try {
-        const res = await axios.get('/texas_hold_em/ai_opp_cards');
-        console.log(`Opp Hand: ${res.data}`);
-        const computerHand = [];
-        res.data.forEach((element) =>
-          computerHand.push(element.join().replace(',', ''))
-        );
-        console.log(computerHand);
-        displayHand = document.createElement('td');
-        let i = 0;
-        for (i = 0; i < computerHand.length; i++) {
-          displayHand.innerText += `${computerHand[i]} `;
-        }
-        oppHand.append(displayHand);
-      } catch (error) {
-        console.log(error);
-      }
-    }
     getOppCards();
-
-    async function getUserScore() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_score');
-        console.log(`User Score: ${res.data}`);
-        displayScore = document.createElement('td');
-        displayScore.innerText = `${res.data}`;
-        userScore.append(displayScore);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getUserScore();
-
-    async function getOppScore() {
-      try {
-        const res = await axios.get('/texas_hold_em/computer_opp_score');
-        console.log(`Opp Score: ${res.data}`);
-        displayScore = document.createElement('td');
-        if (res.data > 1) {
-          displayScore.innerText = res.data;
-          oppScore.append(displayScore);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    getOppScore();
+    getScore('/texas_hold_em/user_score', userScore);
+    getScore('/texas_hold_em/computer_opp_score', oppScore);
 
     setTimeout(() => {
       alert(`
