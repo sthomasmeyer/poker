@@ -276,6 +276,10 @@ def check_full_house(hand):
         # MAX full-house score = 104.13
         score = 90 + (three_of_a_kind[0] + two_of_a_kind[0] / 100)
         return score
+    elif len(three_of_a_kind) == 6:
+        print(f"Trippy: {three_of_a_kind}")
+        score = 90 + (max(three_of_a_kind) + min(three_of_a_kind) / 100)
+        return score
     else:
         return check_flush(hand)
 
@@ -466,6 +470,7 @@ def check_two_pair(hand):
             print(f"TWO-PAIR on the board: {pairs}")
             # MAX score = 44
             score = 30 + max(pairs)
+            return score
         else:
             return check_pair(hand)
 

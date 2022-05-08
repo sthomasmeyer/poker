@@ -161,6 +161,14 @@ window.onload = function action() {
   console.log(`User (blind) Chips Commited: ${userBlind.innerText}`);
   console.log(`AI (blind) Chips Commited: ${oppBlind.innerText}`);
 
+  // Testing "slider" betting method:
+  // let slider = document.createElement('input');
+  // slider.setAttribute('min', '1');
+  // slider.setAttribute('max', `${userChipCount.children[1]}`);
+  // slider.setAttribute('value', 10);
+  // slider.setAttribute('type', 'range');
+  // userOptions.append(slider);
+
   // If the ai-opp is playing from the small-blind position...
   // then they will be the first player to act.
   if (userBlind.innerText > oppBlind.innerText) {
@@ -662,9 +670,8 @@ if (postTurnCheckButton != null) {
 revealRiverButton.onclick = function revealRiver(evt) {
   evt.preventDefault();
 
-  getRiver();
-
   revealRiverButton.remove();
+  getRiver();
 
   async function getRiver() {
     try {
