@@ -1,35 +1,11 @@
 /* SECTION [0]: ESTABLISHING KEY VARIABLES */
 
-// If the user is the dealer for a given hand, then an...
-// HTML element w/ the following [id] will be auto-generated.
-let preFlopCallButton = document.getElementById('pre-flop-call-btn');
-
-// If the ai-opp is the delaer, then the active-user will...
-// be the first to act in each post-flop round of betting...
-// and they will always have the option to check. Note...
-// if the active-user is the dealer, then these buttons...
-// will *not* be auto-generated.
-let postFlopCheckButton = document.getElementById('post-flop-check-btn');
-let postTurnCheckButton = document.getElementById('post-turn-check-btn');
-let postRiverCheckButton = document.getElementById('post-river-check-btn');
-
 // The following HTML elements are *always* generated...
 // at the beginning of a hand, and they are revealed to...
 // users when appropriate.
 const revealFlopButton = document.getElementById('reveal-flop-btn');
 const revealTurnButton = document.getElementById('reveal-turn-btn');
 const revealRiverButton = document.getElementById('reveal-river-btn');
-
-// The following variables capture elements related to...
-// the "showdown" or the end of each poker hand. Note only...
-// one set [win] / [loss] / [draw] will exist in a given hand.
-const showdownDiv = document.getElementById('showdown');
-const showdownWinForm = document.getElementById('showdown-win-form');
-const showdownWinButton = document.getElementById('showdown-win-btn');
-const showdownLossForm = document.getElementById('showdown-loss-form');
-const showdownLossButton = document.getElementById('showdown-loss-btn');
-const showdownDrawForm = document.getElementById('showdown-draw-form');
-const showdownDrawButton = document.getElementById('showdown-draw-btn');
 
 // The following variables capture elements related to...
 // the active-user.
@@ -42,6 +18,11 @@ const userOptions = document.getElementById('user-options');
 // The following [foldButton] variable is aligned to...
 // the player's ever-present option to fold.
 const foldButton = document.getElementById('fold-btn');
+
+const allocatorContainer = document.getElementById('allocator-container');
+const allocator = document.getElementById('allocator');
+const allocatorValue = document.getElementById('allocator-val');
+const allocatorSubmitButton = document.getElementById('allocator-submit-btn');
 
 // The following variables capture elements related to...
 // the community cards (+) the pot.
@@ -154,20 +135,144 @@ function updateCommitedChips(anchor, val) {
   anchor.append(updatedVal);
 }
 
+function generateCheckButton(path) {
+  let checkButton = document.createElement('button');
+  checkButton.innerText = 'Check';
+  userOptions.append(checkButton);
+
+  checkButton.onclick = function userAction(evt) {
+    evt.preventDefault();
+
+    userCheck();
+    checkButton.remove();
+    if (path.includes('pre_flop')) {
+      revealFlopButton.hidden = false;
+    } else if (path.includes('post_flop')) {
+      revealTurnButton.hidden = false;
+    } else if (path.includes('post_turn')) {
+      revealRiverButton.hidden = false;
+    } else if (path.includes('post_river')) {
+      generateShowdownButton();
+    }
+
+    async function userCheck() {
+      try {
+        const res = await axios.get(path);
+        console.log(`[CHECK] User Chips Commited: ${res.data}`);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  };
+}
+
+function generateCallButton(path) {
+  let callButton = document.createElement('button');
+  callButton.innerText = 'Call';
+  userOptions.append(callButton);
+  foldButton.hidden = false;
+
+  callButton.onclick = function userAction(evt) {
+    evt.preventDefault();
+
+    userCall();
+    callButton.remove();
+    foldButton.hidden = true;
+    if (path.includes('pre_flop')) {
+      revealFlopButton.hidden = false;
+    } else if (path.includes('post_flop')) {
+      revealTurnButton.hidden = false;
+    } else if (path.includes('post_turn')) {
+      revealRiverButton.hidden = false;
+    } else if (path.includes('post_river')) {
+      generateShowdownButton();
+    }
+
+    async function userCall() {
+      try {
+        const res = await axios.get(path);
+
+        totalCommitedChips =
+          Number(userCommitedChips.children[1].innerText) + res.data;
+
+        if (path.includes('pre_flop')) {
+          updateCommitedChips(userCommitedChips, res.data);
+        } else {
+          updateCommitedChips(userCommitedChips, totalCommitedChips);
+        }
+
+        updatePot();
+        updateUserStack();
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  };
+}
+
+class Bet {
+  constructor(container, slider, val, min, max, button) {
+    this.container = container;
+    this.slider = slider;
+    this.val = val;
+    this.min = min;
+    this.max = max;
+    this.button = button;
+  }
+
+  revealKeyElements = () => (this.container.hidden = false);
+  setMinBet = () => this.slider.setAttribute('min', this.min);
+  setMaxBet = () => this.slider.setAttribute('max', this.max);
+  setDefaultValue = () => this.slider.setAttribute('value', this.min);
+  activateDisplay = () => (this.val.innerText = `[${this.slider.value}]`);
+  responsiveAllocator() {
+    this.slider.oninput = () => (this.val.innerHTML = `[${this.slider.value}]`);
+  }
+  functionalButton() {
+    this.button.onclick = (evt) => {
+      evt.preventDefault();
+      console.log(`Raise: ${this.slider.value}`);
+    };
+  }
+}
+
+function generateShowdownButton() {
+  let showdownContainer = document.createElement('td');
+
+  let showdownForm = document.createElement('form');
+  showdownForm.setAttribute('action', '/texas_hold_em/showdown');
+
+  let showdownButton = document.createElement('button');
+  showdownButton.innerText = 'Showdown';
+  showdownButton.onclick = function showdown(evt) {
+    evt.preventDefault();
+    setTimeout(() => {
+      showdownForm.submit();
+    }, 1000);
+    showdownButton.remove();
+
+    getOppCards();
+    getScore('/texas_hold_em/user_score', userScore);
+    getScore('/texas_hold_em/computer_opp_score', oppScore);
+
+    setTimeout(() => {
+      alert(`
+      Press 'OK' to see the next hand
+      `);
+    }, 500);
+  };
+
+  showdownForm.append(showdownButton);
+  showdownContainer.append(showdownForm);
+  userOptions.append(showdownContainer);
+}
+
 /* SECTION [2]: PRE-FLOP ACTION */
 
 // This [action()] function is triggered "onload"...
 window.onload = function action() {
   console.log(`User (blind) Chips Commited: ${userBlind.innerText}`);
   console.log(`AI (blind) Chips Commited: ${oppBlind.innerText}`);
-
-  // Testing "slider" betting method:
-  // let slider = document.createElement('input');
-  // slider.setAttribute('min', '1');
-  // slider.setAttribute('max', `${userChipCount.children[1]}`);
-  // slider.setAttribute('value', 10);
-  // slider.setAttribute('type', 'range');
-  // userOptions.append(slider);
 
   // If the ai-opp is playing from the small-blind position...
   // then they will be the first player to act.
@@ -202,71 +307,38 @@ window.onload = function action() {
 
         if (oppCommitedChips.children[1].innerText == userBlind.innerText) {
           console.log('Cortana decided to call.');
-          // If Cortana calls, then the active-user can check.
-          let preFlopCheckButton = document.createElement('button');
-          preFlopCheckButton.innerText = 'Check';
-          userOptions.append(preFlopCheckButton);
+          // If Cortana calls, then the active-user can check or bet.
 
-          // Even though users are technically allowed to fold...
-          // it would be foolish to do so.
+          generateCheckButton('/texas_hold_em/user_pre_flop_check');
           foldButton.hidden = true;
 
-          // This [if]-statement is designed to check whether...
-          // or not the active-user has the option to check.
-          if (preFlopCheckButton != null) {
-            preFlopCheckButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-              // Delete this [preFlopCheckButton].
-              preFlopCheckButton.remove();
-              // Display the [revealFlop] button.
-              revealFlopButton.hidden = false;
-            };
-          }
-        }
+          let preFlopRaise = new Bet(
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
 
-        if (oppCommitedChips.children[1].innerText > userBlind.innerText) {
+          preFlopRaise.revealKeyElements();
+          preFlopRaise.setMinBet();
+          preFlopRaise.setMaxBet();
+          preFlopRaise.setDefaultValue();
+          preFlopRaise.activateDisplay();
+          preFlopRaise.responsiveAllocator();
+          preFlopRaise.functionalButton();
+        } else if (
+          oppCommitedChips.children[1].innerText > userBlind.innerText
+        ) {
           console.log('Cortana decided to raise.');
 
           preFlopRaiseCounter += 1;
           console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
 
-          // If Cortana raises, then the active-user can call.
-          let preFlopCallButton = document.createElement('button');
-          preFlopCallButton.innerText = 'Call';
-          userOptions.append(preFlopCallButton);
-
-          // This [if]-statement is designed to check whether...
-          // or not the active-user has the option to call.
-          if (preFlopCallButton != null) {
-            preFlopCallButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              // Execute the asynchronous [preFlopCall()] function.
-              preFlopCall();
-
-              // If the user chooses to call, then take away the...
-              // option to fold, and display the [revealFlopButton].
-              foldButton.hidden = true;
-              // Don't forget to delete this [preFlopCallbutton].
-              preFlopCallButton.remove();
-              revealFlopButton.hidden = false;
-
-              async function preFlopCall() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_pre_flop_call'
-                  );
-                  console.log(`User Chips Commited: ${res.data}`);
-
-                  updateCommitedChips(userCommitedChips, res.data);
-                  updatePot();
-                  updateUserStack();
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
+          generateCallButton('/texas_hold_em/user_pre_flop_call');
         }
       } catch (error) {
         console.log(error);
@@ -275,39 +347,9 @@ window.onload = function action() {
     cortanaPreFlopDecision();
   } else {
     console.log('The action is on the active user.');
+    generateCallButton('/texas_hold_em/user_pre_flop_call');
   }
 };
-
-// This [if]-statement is designed to check whether...
-// or not the active-user has the option to call.
-if (preFlopCallButton != null) {
-  preFlopCallButton.onclick = function userAction(evt) {
-    evt.preventDefault();
-
-    // Execute the asynchronous [preFlopCall()] function.
-    preFlopCall();
-
-    // If the user chooses to call, then take away the...
-    // option to fold, and display the [revealFlopButton].
-    foldButton.hidden = true;
-    // Don't forget to delete this [preFlopCallbutton].
-    preFlopCallButton.remove();
-    revealFlopButton.hidden = false;
-
-    async function preFlopCall() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_pre_flop_call');
-        console.log(`User Chips Commited: ${res.data}`);
-
-        updateCommitedChips(userCommitedChips, res.data);
-        updatePot();
-        updateUserStack();
-      } catch (error) {
-        console.log(error);
-      }
-    }
-  };
-}
 
 /* SECTION [3]: POST-FLOP ACTION */
 
@@ -383,97 +425,15 @@ revealFlopButton.onclick = function revealFlop(evt) {
           userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana has decided to check.');
-          // If Cortana checks, then the active-user can check.
-          let postFlopCheckButton = document.createElement('button');
-          postFlopCheckButton.innerText = 'Check';
-          userOptions.append(postFlopCheckButton);
-
-          // This [if]-statement is designed to check whether...
-          // or not the active-user has the option to check...
-          // Remember, if you attempt to add an [onclick] event...
-          // to a non-existent button, then errors will be thrown.
-          if (postFlopCheckButton != null) {
-            postFlopCheckButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              // Execute the asynchronous [postFlopCheck()] function.
-              postFlopCheck();
-              // Don't forget to delete this [postFlopCheckbutton].
-              postFlopCheckButton.remove();
-              // If the user decides to check, then...
-              // display the [revealTurn] button.
-              revealTurnButton.hidden = false;
-
-              async function postFlopCheck() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_post_flop_check'
-                  );
-                  console.log(
-                    `[CHECK] Post-flop User Chips Commited: ${res.data}`
-                  );
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
-        }
-
-        if (
+          generateCheckButton('/texas_hold_em/user_post_flop_check');
+        } else if (
           oppCommitedChips.children[1].innerText >
           userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
           postFlopRaiseCounter += 1;
           console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
-
-          // If the ai-opp raises, then users can fold.
-          foldButton.hidden = false;
-
-          // If Cortana raises, then the active-user can call.
-          let postFlopCallButton = document.createElement('button');
-          postFlopCallButton.innerText = 'Call';
-          userOptions.append(postFlopCallButton);
-
-          // This [if]-statement is designed to check whether...
-          // or not the active-user has the option to call.
-          if (postFlopCallButton != null) {
-            postFlopCallButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              // Execute the asynchronous [postFlopCall()] function.
-              postFlopCall();
-              // If the user chooses to call, then take away the...
-              // option to fold, and display the [revealFlopButton].
-              foldButton.hidden = true;
-              // Don't forget to delete this [postFlopCallbutton].
-              postFlopCallButton.remove();
-              // If the user decides to call, then...
-              // display the [revealTurn] button.
-              revealTurnButton.hidden = false;
-
-              async function postFlopCall() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_post_flop_call'
-                  );
-
-                  totalCommitedChips =
-                    Number(userCommitedChips.children[1].innerText) + res.data;
-
-                  console.log(`Post-flop User Chips Commited: 
-                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-
-                  updateCommitedChips(userCommitedChips, totalCommitedChips);
-                  updatePot();
-                  updateUserStack();
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
+          generateCallButton('/texas_hold_em/user_post_flop_call');
         }
       } catch (error) {
         console.log(error);
@@ -482,35 +442,9 @@ revealFlopButton.onclick = function revealFlop(evt) {
     cortanaPostFlopDecision();
   } else {
     console.log('The action is on the active user.');
-    postFlopCheckButton.hidden = false;
+    generateCheckButton('/texas_hold_em/user_post_flop_check');
   }
 };
-
-// This [if]-statement is designed to check whether...
-// or not the active-user has the option to check.
-if (postFlopCheckButton != null) {
-  postFlopCheckButton.onclick = function userAction(evt) {
-    evt.preventDefault();
-
-    // Execute the asynchronous [postFlopCheck()] function.
-    postFlopCheck();
-    // If the user chooses to check, then take away the...
-    // option to fold, and display the [revealTurnButton].
-    foldButton.hidden = true;
-    // Don't forget to delete this [postFlopCheckButton].
-    postFlopCheckButton.remove();
-    revealTurnButton.hidden = false;
-
-    async function postFlopCheck() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_post_flop_check');
-        console.log(`[CHECK] Post-flop User Chips Commited: ${res.data}`);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-  };
-}
 
 /* SECTION [4]: POST-TURN ACTION */
 
@@ -561,35 +495,8 @@ revealTurnButton.onclick = function revealTurn(evt) {
         ) {
           console.log('Cortana has decided to check.');
 
-          let postTurnCheckButton = document.createElement('button');
-          postTurnCheckButton.innerText = 'Check';
-          userOptions.append(postTurnCheckButton);
-
-          if (postTurnCheckButton != null) {
-            postTurnCheckButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              postTurnCheckButton.remove();
-              postTurnCheck();
-              revealRiverButton.hidden = false;
-
-              async function postTurnCheck() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_post_turn_check'
-                  );
-                  console.log(
-                    `[CHECK] Post-turn User Chips Commited: ${res.data}`
-                  );
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
-        }
-
-        if (
+          generateCheckButton('/texas_hold_em/user_post_turn_check');
+        } else if (
           oppCommitedChips.children[1].innerText >
           userCommitedChips.children[1].innerText
         ) {
@@ -597,42 +504,7 @@ revealTurnButton.onclick = function revealTurn(evt) {
           postTurnRaiseCounter += 1;
           console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
 
-          foldButton.hidden = false;
-
-          let postTurnCallButton = document.createElement('button');
-          postTurnCallButton.innerText = 'Call';
-          userOptions.append(postTurnCallButton);
-
-          if (postTurnCallButton != null) {
-            postTurnCallButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              postTurnCallButton.remove();
-              postTurnCall();
-              revealRiverButton.hidden = false;
-              foldButton.hidden = true;
-
-              async function postTurnCall() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_post_turn_call'
-                  );
-
-                  totalCommitedChips =
-                    Number(userCommitedChips.children[1].innerText) + res.data;
-
-                  console.log(`Post-turn User Chips Commited: 
-                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-
-                  updateCommitedChips(userCommitedChips, totalCommitedChips);
-                  updatePot();
-                  updateUserStack();
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
+          generateCallButton('/texas_hold_em/user_post_turn_call');
         }
       } catch (error) {
         console.log(error);
@@ -641,29 +513,9 @@ revealTurnButton.onclick = function revealTurn(evt) {
     cortanaPostTurnDecision();
   } else {
     console.log('The action is on the active user.');
-    postTurnCheckButton.hidden = false;
+    generateCheckButton('/texas_hold_em/user_post_turn_check');
   }
 };
-
-if (postTurnCheckButton != null) {
-  postTurnCheckButton.onclick = function userAction(evt) {
-    evt.preventDefault();
-
-    postTurnCheckButton.remove();
-    postTurnCheck();
-    revealRiverButton.hidden = false;
-    foldButton.hidden = true;
-
-    async function postTurnCheck() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_post_turn_check');
-        console.log(`[CHECK] Post-turn User Chips Commited: ${res.data}`);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-  };
-}
 
 /* SECTION [5]: POST-RIVER ACTION */
 
@@ -711,40 +563,6 @@ revealRiverButton.onclick = function revealRiver(evt) {
         updateOppStack();
 
         if (
-          oppCommitedChips.children[1].innerText ==
-          userCommitedChips.children[1].innerText
-        ) {
-          console.log('Cortana has decided to check.');
-
-          let postRiverCheckButton = document.createElement('button');
-          postRiverCheckButton.innerText = 'Check';
-          userOptions.append(postRiverCheckButton);
-
-          if (postRiverCheckButton != null) {
-            postRiverCheckButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              postRiverCheckButton.remove();
-              postRiverCheck();
-              showdownDiv.hidden = false;
-
-              async function postRiverCheck() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_post_river_check'
-                  );
-                  console.log(
-                    `[CHECK] Post-river User Chips Commited: ${res.data}`
-                  );
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
-        }
-
-        if (
           oppCommitedChips.children[1].innerText >
           userCommitedChips.children[1].innerText
         ) {
@@ -752,42 +570,14 @@ revealRiverButton.onclick = function revealRiver(evt) {
           postRiverRaiseCounter += 1;
           console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
 
-          foldButton.hidden = false;
+          generateCallButton('/texas_hold_em/user_post_river_call');
+        } else if (
+          oppCommitedChips.children[1].innerText ==
+          userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana has decided to check.');
 
-          let postRiverCallButton = document.createElement('button');
-          postRiverCallButton.innerText = 'Call';
-          userOptions.append(postRiverCallButton);
-
-          if (postRiverCallButton != null) {
-            postRiverCallButton.onclick = function userAction(evt) {
-              evt.preventDefault();
-
-              postRiverCallButton.remove();
-              postRiverCall();
-              showdownDiv.hidden = false;
-              foldButton.hidden = true;
-
-              async function postRiverCall() {
-                try {
-                  const res = await axios.get(
-                    '/texas_hold_em/user_post_river_call'
-                  );
-
-                  totalCommitedChips =
-                    Number(userCommitedChips.children[1].innerText) + res.data;
-
-                  console.log(`Post-river User Chips Commited: 
-                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-
-                  updateCommitedChips(userCommitedChips, totalCommitedChips);
-                  updatePot();
-                  updateUserStack();
-                } catch (error) {
-                  console.log(error);
-                }
-              }
-            };
-          }
+          generateCheckButton('/texas_hold_em/user_post_river_check');
         }
       } catch (error) {
         console.log(error);
@@ -796,97 +586,6 @@ revealRiverButton.onclick = function revealRiver(evt) {
     cortanaPostRiverDecision();
   } else {
     console.log('The action is on the active user.');
-    postRiverCheckButton.hidden = false;
+    generateCheckButton('/texas_hold_em/user_post_river_check');
   }
 };
-
-if (postRiverCheckButton != null) {
-  postRiverCheckButton.onclick = function userAction(evt) {
-    evt.preventDefault();
-
-    postRiverCheckButton.remove();
-    postRiverCheck();
-    showdownDiv.hidden = false;
-    foldButton.hidden = true;
-
-    async function postRiverCheck() {
-      try {
-        const res = await axios.get('/texas_hold_em/user_post_river_check');
-        console.log(`[CHECK] Post-river User Chips Commited: ${res.data}`);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-  };
-}
-
-/* SECTION [6]: SHOWDOWN */
-
-// This [if]-statement is designed to check whether...
-// or not the active-user has WON the hand.
-if (showdownWinButton != null) {
-  showdownWinButton.onclick = function showdown(evt) {
-    evt.preventDefault();
-    setTimeout(() => {
-      showdownWinForm.submit();
-    }, 1000);
-    showdownWinButton.remove();
-
-    getOppCards();
-    getScore('/texas_hold_em/user_score', userScore);
-    getScore('/texas_hold_em/computer_opp_score', oppScore);
-
-    setTimeout(() => {
-      alert(`
-      You've won this hand
-      Press 'OK' to see the next hand
-      `);
-    }, 500);
-  };
-}
-
-// This [if]-statement is designed to check whether...
-// or not the active-user has LOST the hand.
-if (showdownLossButton != null) {
-  showdownLossButton.onclick = function showdown(evt) {
-    evt.preventDefault();
-    setTimeout(() => {
-      showdownLossForm.submit();
-    }, 1000);
-    showdownLossButton.remove();
-
-    getOppCards();
-    getScore('/texas_hold_em/user_score', userScore);
-    getScore('/texas_hold_em/computer_opp_score', oppScore);
-
-    setTimeout(() => {
-      alert(`
-      You've lost this hand
-      Press 'OK' to see the next hand
-      `);
-    }, 500);
-  };
-}
-
-// This [if]-statement is designed to check whether...
-// or not the hand ended in a DRAW.
-if (showdownDrawButton != null) {
-  showdownDrawButton.onclick = function showdown(evt) {
-    evt.preventDefault();
-    setTimeout(() => {
-      showdownDrawForm.submit();
-    }, 1000);
-    showdownDrawButton.remove();
-
-    getOppCards();
-    getScore('/texas_hold_em/user_score', userScore);
-    getScore('/texas_hold_em/computer_opp_score', oppScore);
-
-    setTimeout(() => {
-      alert(`
-      This hand ended in a draw
-      Press 'OK' to see the next hand
-      `);
-    }, 500);
-  };
-}

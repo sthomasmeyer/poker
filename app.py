@@ -7,9 +7,6 @@ import importlib
 # Import Python's [json] module.
 import json
 
-# Import Python's [random] module.
-import random
-
 # Import Python's [math] module.
 import math
 
@@ -30,7 +27,7 @@ from forms import (
 # Import the classes you've created from the [game_elements.py] file.
 from game_elements import Player, Deck, Card, Action
 
-# Import the classes you've created from the [game_elements.py] file.
+# Import the classes you've created from the [hand_rankings.py] file.
 from hand_rankings import (
     check_straight_flush,
     check_pair,
@@ -627,6 +624,16 @@ def user_pre_flop_call():
         return active_pot.user_pre_flop
 
 
+@app.route("/texas_hold_em/user_pre_flop_check", methods=["GET", "POST"])
+def user_pre_flop_check():
+    user_id = session["user_id"]
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    return active_pot.user_pre_flop
+
+
 @app.route("/texas_hold_em/flop", methods=["GET", "POST"])
 def get_flop():
     user_id = session["user_id"]
@@ -1132,73 +1139,46 @@ def opp_folded():
     return redirect(f"/texas_hold_em/{user_id}")
 
 
-@app.route("/texas_hold_em/win/<int:user_id>", methods=["GET", "POST"])
-def won_hand(user_id):
+@app.route("/texas_hold_em/showdown", methods=["GET", "POST"])
+def showdown():
+    user_id = session["user_id"]
     user = User.query.get_or_404(user_id)
 
-    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
-    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
-
-    # The user has won this hand.
-    int_pot = int(active_pot.total_chips)
-    adjusted_user_capital = math.trunc(int(user.capital) + int_pot)
-    user.capital = json.dumps(adjusted_user_capital)
-    db.session.commit()
-
-    saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
-    for hand in saved_user_hands:
-        db.session.delete(hand)
-
-    db.session.commit()
-
-    flash(f"Previous hand: [win]")
-    return redirect(f"/texas_hold_em/{user_id}")
-
-
-@app.route("/texas_hold_em/loss/<int:user_id>", methods=["GET", "POST"])
-def lost_hand(user_id):
-    user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
-    # The user has lost, so the ai-opp wins the pot.
-    int_pot = int(active_pot.total_chips)
-    adjusted_ai_stack = math.trunc(ai_stack + int_pot)
-    session["ai_stack"] = adjusted_ai_stack
+    if saved_hand.user_score > saved_hand.computer_opp_score:
+        int_pot = int(active_pot.total_chips)
+        adjusted_user_capital = math.trunc(int(user.capital) + int_pot)
+        user.capital = json.dumps(adjusted_user_capital)
+        db.session.commit()
+
+        flash(f"Previous hand: [win]")
+        return redirect(f"/texas_hold_em/{user_id}")
+
+    if saved_hand.user_score < saved_hand.computer_opp_score:
+        int_pot = int(active_pot.total_chips)
+        adjusted_ai_stack = math.trunc(ai_stack + int_pot)
+        session["ai_stack"] = adjusted_ai_stack
+
+        flash(f"Previous hand: [loss]")
+        return redirect(f"/texas_hold_em/{user_id}")
+    
+    if saved_hand.user_score == saved_hand.computer_opp_score:
+        int_pot = int(active_pot.total_chips)
+        adjusted_user_capital = math.trunc(int(user.capital) + int(int_pot / 2))
+        user.capital = json.dumps(adjusted_user_capital)
+        adjusted_ai_stack = math.trunc(ai_stack + (int_pot / 2))
+        session["ai_stack"] = adjusted_ai_stack
+        db.session.commit()
+
+        flash(f"Previous hand: [draw]")
+        return redirect(f"/texas_hold_em/{user_id}")
 
     saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
     for hand in saved_user_hands:
         db.session.delete(hand)
 
     db.session.commit()
-
-    flash(f"Previous hand: [loss]")
-    return redirect(f"/texas_hold_em/{user_id}")
-
-
-@app.route("/texas_hold_em/draw/<int:user_id>", methods=["GET", "POST"])
-def drew_hand(user_id):
-    user = User.query.get_or_404(user_id)
-    ai_stack = session["ai_stack"]
-
-    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
-    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
-
-    # This hand ended in a draw, so the players split the pot 50:50.
-    int_pot = int(active_pot.total_chips)
-    adjusted_user_capital = math.trunc(int(user.capital) + int(int_pot / 2))
-    user.capital = json.dumps(adjusted_user_capital)
-    adjusted_ai_stack = math.trunc(ai_stack + (int_pot / 2))
-    session["ai_stack"] = adjusted_ai_stack
-    db.session.commit()
-
-    saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
-    for hand in saved_user_hands:
-        db.session.delete(hand)
-
-    db.session.commit()
-
-    flash(f"Previous hand: [draw]")
-    return redirect(f"/texas_hold_em/{user_id}")

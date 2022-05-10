@@ -36,36 +36,13 @@ that is meant to be manipulated by its "children", we must first write... -->
         to fold, whether or not it makes sense to do so. -->
         <td><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
 
-        <!-- If the active-user is the dealer, then they are the first...
-        to act, and they will have the option to call. -->
-        {% if players[0].dealer %}
-        <td>
-          <form action="/texas_hold_em/user_pre_flop_call">
-            <button id="pre-flop-call-btn">Call</button>
+        <td hidden id="allocator-container">
+          <form action="/texas_hold_em/user_raise">
+            <input id="allocator" type="range">
+            <label id="allocator-val"></label>
+            <button id="allocator-submit-btn">Raise</button>
           </form>
         </td>
-        {% endif %}
-
-        <!-- If the ai-opp is the dealer, then the active-user will...
-        be the first to act in each post-flop betting round, and...
-        they will always have the option to check. -->
-        {% if players[1].dealer %}
-        <td hidden id="post-flop-check-btn">
-          <form action="/texas_hold_em/user_post_flop_check">
-            <button>Check</button>
-          </form>
-        </td>
-        <td hidden id="post-turn-check-btn">
-          <form action="/texas_hold_em/user_post_turn_check">
-            <button>Check</button>
-          </form>
-        </td>
-        <td hidden id="post-river-check-btn">
-          <form action="/texas_hold_em/user_post_river_check">
-            <button>Check</button>
-          </form>
-        </td>
-        {% endif %}
 
         <!-- The following three buttons are vital bc they each trigger...
         key events in a given hand of Texas Hold'em. Their state is "hidden"...
@@ -74,26 +51,6 @@ that is meant to be manipulated by its "children", we must first write... -->
         <td><button hidden id="reveal-turn-btn">Reveal Turn</button></td>
         <td><button hidden id="reveal-river-btn">Reveal River</button></td>
 
-        <!-- Only one of these "showdown" buttons will be generated...
-        every time this HTML template is rendered. Even though they...
-        activate markedly different paths when clicked (one is aligned...
-        to a user-win, while the other is aligned to a user-loss), they...
-        are indistinguishable from the user's point-of-view. -->
-        <td hidden id="showdown">
-          {% if players[0].hand_ranking > players[1].hand_ranking %}
-          <form id="showdown-win-form" action="/texas_hold_em/win/{{ user.id }}">
-            <button id="showdown-win-btn">Showdown</button>
-          </form>
-          {% elif players[1].hand_ranking > players[0].hand_ranking %}
-          <form id="showdown-loss-form" action="/texas_hold_em/loss/{{ user.id }}">
-            <button id="showdown-loss-btn">Showdown</button>
-          </form>
-          {% elif players[0].hand_ranking == players[1].hand_ranking %}
-          <form id="showdown-draw-form" action="/texas_hold_em/draw/{{ user.id }}">
-            <button id="showdown-draw-btn">Showdown</button>
-          </form>
-          {% endif %}
-        </td>
       </tr>
   </table>
   <br>
