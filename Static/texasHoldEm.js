@@ -1,8 +1,7 @@
 /* SECTION [0]: ESTABLISHING KEY VARIABLES */
 
-// The following HTML elements are *always* generated...
-// at the beginning of a hand, and they are revealed to...
-// users when appropriate.
+// The following HTML elements are *always* generated at the...
+// beginning of a hand, and revealed to users when appropriate.
 const revealFlopButton = document.getElementById('reveal-flop-btn');
 const revealTurnButton = document.getElementById('reveal-turn-btn');
 const revealRiverButton = document.getElementById('reveal-river-btn');
@@ -19,6 +18,9 @@ const userOptions = document.getElementById('user-options');
 // the player's ever-present option to fold.
 const foldButton = document.getElementById('fold-btn');
 
+// The following HTML elements are aligned to the active-user betting...
+// system. They are generated at the beginning of each hand, and...
+// revealed to users when appropriate.
 const allocatorContainer = document.getElementById('allocator-container');
 const allocatorForm = document.getElementById('allocator-form');
 const allocator = document.getElementById('allocator');
@@ -137,6 +139,7 @@ function updateCommitedChips(anchor, val) {
 }
 
 function generateCheckButton(path) {
+  // Generate the "CHECK" button (+) append it to [userOptions].
   let checkButton = document.createElement('button');
   checkButton.innerText = 'Check';
   checkButton.setAttribute('id', 'check-btn');
@@ -145,9 +148,14 @@ function generateCheckButton(path) {
   checkButton.onclick = function userAction(evt) {
     evt.preventDefault();
 
+    // Execute the asynchronous [userCheck()] function.
     userCheck();
+    // Remove this "CHECK" button.
     checkButton.remove();
+    // Hide the HTML elements associated w/ the user-betting system.
     allocatorContainer.hidden = true;
+    // The following [if]-statements ensure that the appropriate button...
+    // is revealed after the active-user chooses to CHECK.
     if (path.includes('pre_flop')) {
       revealFlopButton.hidden = false;
     } else if (path.includes('post_flop')) {
@@ -170,19 +178,28 @@ function generateCheckButton(path) {
 }
 
 function generateCallButton(path) {
+  // Generate the "CALL" button (+) append to [userOptions].
   let callButton = document.createElement('button');
   callButton.innerText = 'Call';
   callButton.setAttribute('id', 'call-btn');
   userOptions.append(callButton);
+
+  // If the active-user has the option to call, then they have the...
+  // option to fold. Reveal the "FOLD" button.
   foldButton.hidden = false;
 
   callButton.onclick = function userAction(evt) {
     evt.preventDefault();
 
+    // Execute the asynchronous [userCall()] function.
     userCall();
+    // Remove this "CALL" button.
     callButton.remove();
+    // Hide the HTML elements associated w/ the user-betting system (+) the "FOLD" button.
     allocatorContainer.hidden = true;
     foldButton.hidden = true;
+    // The following [if]-statements ensure that the appropriate button...
+    // is revealed after the active-user chooses to CALL.
     if (path.includes('pre_flop')) {
       revealFlopButton.hidden = false;
     } else if (path.includes('post_flop')) {
@@ -248,16 +265,15 @@ class Bet {
   setMaxBet = () => this.rangeSlider.setAttribute('max', this.maxBet);
   setDefaultInputVal = () =>
     this.rangeSlider.setAttribute('value', this.minBet);
-  activateDisplay = () =>
-    (this.inputDisplay.innerText = `[${this.rangeSlider.value}]`);
-  responsiveDisplay() {
+  activateDisplay = () => {
+    this.inputDisplay.innerHTML = `[${this.rangeSlider.value}]`;
     this.rangeSlider.oninput = () =>
       (this.inputDisplay.innerHTML = `[${this.rangeSlider.value}]`);
-  }
+  };
   buttonOnClickFunctionality() {
     this.submitButton.onclick = (evt) => {
       evt.preventDefault();
-      console.log(`Bet: ${this.rangeSlider.value}`);
+      console.log(`The active-user bets: ${this.rangeSlider.value}`);
 
       if (this.bettingRound === 'pre_flop') {
         preFlopRaiseCounter += 1;
@@ -332,6 +348,8 @@ class Bet {
 
           if (queryObject['round'] === 'pre_flop') {
             console.log(`Updated AI Chips Commited: ${res.data}`);
+            // Update the value associated w/ the number of...
+            // chips the ai-opp has commited.
             updateCommitedChips(oppCommitedChips, res.data);
           } else {
             let totalCommitedChips =
@@ -341,8 +359,34 @@ class Bet {
             updateCommitedChips(oppCommitedChips, totalCommitedChips);
           }
 
+          // Execute [updatePot()] + [updateOppStack()] functions.
           updatePot();
           updateOppStack();
+
+          // The following [setTimeout()] function is purely for de-bugging purposes.
+          setTimeout(() => {
+            if (
+              oppCommitedChips.children[1].innerText ==
+              userCommitedChips.children[1].innerText
+            ) {
+              console.log('Cortana decided to call.');
+            } else if (
+              oppCommitedChips.children[1].innerText >
+              userCommitedChips.children[1].innerText
+            ) {
+              console.log('Cortana decided to re-raise.');
+            } else if (3 === 3) {
+              console.log(isNaN(oppCommitedChips.children[1].innerText));
+              console.log(isNaN(userCommitedChips.children[1].innerText));
+              console.log(
+                `Opp Commited: ${oppCommitedChips.children[1].innerText} [v] User Commited: ${userCommitedChips.children[1].innerText}`
+              );
+              console.log(
+                oppCommitedChips.children[1].innerHTML !=
+                  userCommitedChips.children[1].innerHTML
+              );
+            }
+          }, 500);
 
           if (
             oppCommitedChips.children[1].innerText ==
@@ -361,8 +405,10 @@ class Bet {
             }
           }
 
+          // REVISIT!!! I adjusted the parameters associated w/ this [if]...
+          // statement in order to fix an unusual error.
           if (
-            oppCommitedChips.children[1].innerText >
+            oppCommitedChips.children[1].innerText !=
             userCommitedChips.children[1].innerText
           ) {
             console.log('Cortana decided to re-raise.');
@@ -391,7 +437,6 @@ class Bet {
                 reRaise.setMaxBet();
                 reRaise.setDefaultInputVal();
                 reRaise.activateDisplay();
-                reRaise.responsiveDisplay();
                 reRaise.buttonOnClickFunctionality();
               } else {
                 console.log(
@@ -419,7 +464,6 @@ class Bet {
                 reRaise.setMaxBet();
                 reRaise.setDefaultInputVal();
                 reRaise.activateDisplay();
-                reRaise.responsiveDisplay();
                 reRaise.buttonOnClickFunctionality();
               } else {
                 console.log(
@@ -447,7 +491,6 @@ class Bet {
                 reRaise.setMaxBet();
                 reRaise.setDefaultInputVal();
                 reRaise.activateDisplay();
-                reRaise.responsiveDisplay();
                 reRaise.buttonOnClickFunctionality();
               } else {
                 console.log(
@@ -475,7 +518,6 @@ class Bet {
                 reRaise.setMaxBet();
                 reRaise.setDefaultInputVal();
                 reRaise.activateDisplay();
-                reRaise.responsiveDisplay();
                 reRaise.buttonOnClickFunctionality();
               } else {
                 console.log(
@@ -585,7 +627,6 @@ window.onload = function action() {
           preFlopRaise.setMaxBet();
           preFlopRaise.setDefaultInputVal();
           preFlopRaise.activateDisplay();
-          preFlopRaise.responsiveDisplay();
           preFlopRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText > userBlind.innerText
@@ -614,7 +655,6 @@ window.onload = function action() {
           preFlopRaise.setMaxBet();
           preFlopRaise.setDefaultInputVal();
           preFlopRaise.activateDisplay();
-          preFlopRaise.responsiveDisplay();
           preFlopRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
@@ -643,7 +683,6 @@ window.onload = function action() {
     preFlopRaise.setMaxBet();
     preFlopRaise.setDefaultInputVal();
     preFlopRaise.activateDisplay();
-    preFlopRaise.responsiveDisplay();
     preFlopRaise.buttonOnClickFunctionality();
   }
 };
@@ -723,54 +762,14 @@ revealFlopButton.onclick = function revealFlop(evt) {
         ) {
           console.log('Cortana has decided to check.');
           generateCheckButton('/texas_hold_em/user_post_flop_check');
-
-          let postFlopRaise = new Bet(
-            'post_flop',
-            allocatorContainer,
-            allocator,
-            allocatorValue,
-            oppCommitedChips.children[1].innerText -
-              userCommitedChips.children[1].innerText +
-              1,
-            userChipCount.children[1].innerText,
-            allocatorSubmitButton
-          );
-
-          postFlopRaise.revealUserBettingMechanism();
-          postFlopRaise.setMinBet();
-          postFlopRaise.setMaxBet();
-          postFlopRaise.setDefaultInputVal();
-          postFlopRaise.activateDisplay();
-          postFlopRaise.responsiveDisplay();
-          postFlopRaise.buttonOnClickFunctionality();
         } else if (
-          oppCommitedChips.children[1].innerText >
+          oppCommitedChips.children[1].innerText !=
           userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
           postFlopRaiseCounter += 1;
           console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
           generateCallButton('/texas_hold_em/user_post_flop_call');
-
-          let postFlopRaise = new Bet(
-            'post_flop',
-            allocatorContainer,
-            allocator,
-            allocatorValue,
-            oppCommitedChips.children[1].innerText -
-              userCommitedChips.children[1].innerText +
-              1,
-            userChipCount.children[1].innerText,
-            allocatorSubmitButton
-          );
-
-          postFlopRaise.revealUserBettingMechanism();
-          postFlopRaise.setMinBet();
-          postFlopRaise.setMaxBet();
-          postFlopRaise.setDefaultInputVal();
-          postFlopRaise.activateDisplay();
-          postFlopRaise.responsiveDisplay();
-          postFlopRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -780,26 +779,6 @@ revealFlopButton.onclick = function revealFlop(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_flop_check');
-
-    let postFlopRaise = new Bet(
-      'post_flop',
-      allocatorContainer,
-      allocator,
-      allocatorValue,
-      oppCommitedChips.children[1].innerText -
-        userCommitedChips.children[1].innerText +
-        1,
-      userChipCount.children[1].innerText,
-      allocatorSubmitButton
-    );
-
-    postFlopRaise.revealUserBettingMechanism();
-    postFlopRaise.setMinBet();
-    postFlopRaise.setMaxBet();
-    postFlopRaise.setDefaultInputVal();
-    postFlopRaise.activateDisplay();
-    postFlopRaise.responsiveDisplay();
-    postFlopRaise.buttonOnClickFunctionality();
   }
 };
 
@@ -853,28 +832,8 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log('Cortana has decided to check.');
 
           generateCheckButton('/texas_hold_em/user_post_turn_check');
-
-          let postTurnRaise = new Bet(
-            'post_turn',
-            allocatorContainer,
-            allocator,
-            allocatorValue,
-            oppCommitedChips.children[1].innerText -
-              userCommitedChips.children[1].innerText +
-              1,
-            userChipCount.children[1].innerText,
-            allocatorSubmitButton
-          );
-
-          postTurnRaise.revealUserBettingMechanism();
-          postTurnRaise.setMinBet();
-          postTurnRaise.setMaxBet();
-          postTurnRaise.setDefaultInputVal();
-          postTurnRaise.activateDisplay();
-          postTurnRaise.responsiveDisplay();
-          postTurnRaise.buttonOnClickFunctionality();
         } else if (
-          oppCommitedChips.children[1].innerText >
+          oppCommitedChips.children[1].innerText !=
           userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
@@ -882,26 +841,6 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
 
           generateCallButton('/texas_hold_em/user_post_turn_call');
-
-          let postTurnRaise = new Bet(
-            'post_turn',
-            allocatorContainer,
-            allocator,
-            allocatorValue,
-            oppCommitedChips.children[1].innerText -
-              userCommitedChips.children[1].innerText +
-              1,
-            userChipCount.children[1].innerText,
-            allocatorSubmitButton
-          );
-
-          postTurnRaise.revealUserBettingMechanism();
-          postTurnRaise.setMinBet();
-          postTurnRaise.setMaxBet();
-          postTurnRaise.setDefaultInputVal();
-          postTurnRaise.activateDisplay();
-          postTurnRaise.responsiveDisplay();
-          postTurnRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -911,26 +850,6 @@ revealTurnButton.onclick = function revealTurn(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_turn_check');
-
-    let postTurnRaise = new Bet(
-      'post_turn',
-      allocatorContainer,
-      allocator,
-      allocatorValue,
-      oppCommitedChips.children[1].innerText -
-        userCommitedChips.children[1].innerText +
-        1,
-      userChipCount.children[1].innerText,
-      allocatorSubmitButton
-    );
-
-    postTurnRaise.revealUserBettingMechanism();
-    postTurnRaise.setMinBet();
-    postTurnRaise.setMaxBet();
-    postTurnRaise.setDefaultInputVal();
-    postTurnRaise.activateDisplay();
-    postTurnRaise.responsiveDisplay();
-    postTurnRaise.buttonOnClickFunctionality();
   }
 };
 
@@ -979,8 +898,33 @@ revealRiverButton.onclick = function revealRiver(evt) {
         updatePot();
         updateOppStack();
 
+        // The following [setTimeout()] function is purely for de-bugging purposes.
+        setTimeout(() => {
+          if (
+            oppCommitedChips.children[1].innerText ==
+            userCommitedChips.children[1].innerText
+          ) {
+            console.log('Cortana decided to call.');
+          } else if (
+            oppCommitedChips.children[1].innerText >
+            userCommitedChips.children[1].innerText
+          ) {
+            console.log('Cortana decided to re-raise.');
+          } else if (3 === 3) {
+            console.log(isNaN(oppCommitedChips.children[1].innerText));
+            console.log(isNaN(userCommitedChips.children[1].innerText));
+            console.log(
+              `Opp Commited: ${oppCommitedChips.children[1].innerText} [v] User Commited: ${userCommitedChips.children[1].innerText}`
+            );
+            console.log(
+              oppCommitedChips.children[1].innerHTML !=
+                userCommitedChips.children[1].innerHTML
+            );
+          }
+        }, 500);
+
         if (
-          oppCommitedChips.children[1].innerText >
+          oppCommitedChips.children[1].innerText !=
           userCommitedChips.children[1].innerText
         ) {
           console.log('Cortana decided to raise.');
@@ -988,26 +932,6 @@ revealRiverButton.onclick = function revealRiver(evt) {
           console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
 
           generateCallButton('/texas_hold_em/user_post_river_call');
-
-          let postRiverRaise = new Bet(
-            'post_river',
-            allocatorContainer,
-            allocator,
-            allocatorValue,
-            oppCommitedChips.children[1].innerText -
-              userCommitedChips.children[1].innerText +
-              1,
-            userChipCount.children[1].innerText,
-            allocatorSubmitButton
-          );
-
-          postRiverRaise.revealUserBettingMechanism();
-          postRiverRaise.setMinBet();
-          postRiverRaise.setMaxBet();
-          postRiverRaise.setDefaultInputVal();
-          postRiverRaise.activateDisplay();
-          postRiverRaise.responsiveDisplay();
-          postRiverRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText ==
           userCommitedChips.children[1].innerText
@@ -1015,26 +939,6 @@ revealRiverButton.onclick = function revealRiver(evt) {
           console.log('Cortana has decided to check.');
 
           generateCheckButton('/texas_hold_em/user_post_river_check');
-
-          let postRiverRaise = new Bet(
-            'post_river',
-            allocatorContainer,
-            allocator,
-            allocatorValue,
-            oppCommitedChips.children[1].innerText -
-              userCommitedChips.children[1].innerText +
-              1,
-            userChipCount.children[1].innerText,
-            allocatorSubmitButton
-          );
-
-          postRiverRaise.revealUserBettingMechanism();
-          postRiverRaise.setMinBet();
-          postRiverRaise.setMaxBet();
-          postRiverRaise.setDefaultInputVal();
-          postRiverRaise.activateDisplay();
-          postRiverRaise.responsiveDisplay();
-          postRiverRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -1044,25 +948,5 @@ revealRiverButton.onclick = function revealRiver(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_river_check');
-
-    let postRiverRaise = new Bet(
-      'post_river',
-      allocatorContainer,
-      allocator,
-      allocatorValue,
-      oppCommitedChips.children[1].innerText -
-        userCommitedChips.children[1].innerText +
-        1,
-      userChipCount.children[1].innerText,
-      allocatorSubmitButton
-    );
-
-    postRiverRaise.revealUserBettingMechanism();
-    postRiverRaise.setMinBet();
-    postRiverRaise.setMaxBet();
-    postRiverRaise.setDefaultInputVal();
-    postRiverRaise.activateDisplay();
-    postRiverRaise.responsiveDisplay();
-    postRiverRaise.buttonOnClickFunctionality();
   }
 };

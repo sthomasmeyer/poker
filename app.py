@@ -12,8 +12,9 @@ import math
 
 # Import Flask itself, from [flask], and import all of the Flask features...
 # (i.e., render_template, request) that you will be using in this application.
-from flask import Flask, jsonify, request, render_template, redirect, flash, session
+from flask import Flask, jsonify, request, render_template, redirect, flash, session 
 
+# Import Flask-CORS, an extension for handling Cross Origin Resource Sharing.
 from flask_cors import CORS
 
 # Import SQLAlchemy (db), the [connect_db] function, and the classes you've created from the [models.py] file.
@@ -120,7 +121,7 @@ def home():
             # session storage to keep track of which specific user is logged in.
             session["user_id"] = user_id
 
-            # Reward users w/ +100 capital on successful login.
+            # Reward users w/ +25 capital on successful login.
             user_capital = existing_user.capital
             print(f"User capital status: {user_capital}")
             if user_capital == None:
@@ -700,6 +701,25 @@ def user_pre_flop_call():
 
         return active_pot.user_pre_flop
 
+    ### REVISIT!!! This is an exception I built-in to fix an unusual error...
+    ## I'm not entirely sure what was causing the error, but I am entirely...
+    # sure that this is an effective solution (at least for the time being).
+    elif active_pot.user_pre_flop != active_pot.ai_pre_flop:
+        user_commited_chips = int(active_pot.user_pre_flop)
+        ai_commited_chips = int(active_pot.ai_pre_flop)
+
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
+
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        active_pot.user_pre_flop = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(user_commited_chips + ai_commited_chips)
+        db.session.commit()
+
+        return active_pot.user_pre_flop
+
 
 @app.route("/texas_hold_em/user_pre_flop_check", methods=["GET", "POST"])
 def user_pre_flop_check():
@@ -850,6 +870,19 @@ def user_post_flop_call():
 
         return active_pot.user_post_flop
 
+    elif user_commited_chips != ai_commited_chips:
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
+
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        active_pot.user_post_flop = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+        db.session.commit()
+
+        return active_pot.user_post_flop
+
 
 @app.route("/texas_hold_em/user_post_flop_check", methods=["GET", "POST"])
 def user_post_flop_check():
@@ -983,7 +1016,19 @@ def user_post_turn_call():
         user_commited_chips = 0
 
     if user_commited_chips < ai_commited_chips:
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
 
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        active_pot.user_post_turn = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+        db.session.commit()
+
+        return active_pot.user_post_turn
+
+    elif user_commited_chips != ai_commited_chips:
         difference = ai_commited_chips - user_commited_chips
         user_commited_chips += difference
 
@@ -1124,7 +1169,19 @@ def user_post_river_call():
         user_commited_chips = 0
 
     if user_commited_chips < ai_commited_chips:
+        difference = ai_commited_chips - user_commited_chips
+        user_commited_chips += difference
 
+        adjusted_user_capital = int(user.capital) - difference
+        user.capital = json.dumps(adjusted_user_capital)
+
+        active_pot.user_post_river = json.dumps(user_commited_chips)
+        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+        db.session.commit()
+
+        return active_pot.user_post_river
+
+    elif user_commited_chips != ai_commited_chips:
         difference = ai_commited_chips - user_commited_chips
         user_commited_chips += difference
 
