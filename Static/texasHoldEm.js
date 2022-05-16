@@ -20,6 +20,7 @@ const userOptions = document.getElementById('user-options');
 const foldButton = document.getElementById('fold-btn');
 
 const allocatorContainer = document.getElementById('allocator-container');
+const allocatorForm = document.getElementById('allocator-form');
 const allocator = document.getElementById('allocator');
 const allocatorValue = document.getElementById('allocator-val');
 const allocatorSubmitButton = document.getElementById('allocator-submit-btn');
@@ -138,6 +139,7 @@ function updateCommitedChips(anchor, val) {
 function generateCheckButton(path) {
   let checkButton = document.createElement('button');
   checkButton.innerText = 'Check';
+  checkButton.setAttribute('id', 'check-btn');
   userOptions.append(checkButton);
 
   checkButton.onclick = function userAction(evt) {
@@ -145,6 +147,7 @@ function generateCheckButton(path) {
 
     userCheck();
     checkButton.remove();
+    allocatorContainer.hidden = true;
     if (path.includes('pre_flop')) {
       revealFlopButton.hidden = false;
     } else if (path.includes('post_flop')) {
@@ -169,6 +172,7 @@ function generateCheckButton(path) {
 function generateCallButton(path) {
   let callButton = document.createElement('button');
   callButton.innerText = 'Call';
+  callButton.setAttribute('id', 'call-btn');
   userOptions.append(callButton);
   foldButton.hidden = false;
 
@@ -177,6 +181,7 @@ function generateCallButton(path) {
 
     userCall();
     callButton.remove();
+    allocatorContainer.hidden = true;
     foldButton.hidden = true;
     if (path.includes('pre_flop')) {
       revealFlopButton.hidden = false;
@@ -211,27 +216,278 @@ function generateCallButton(path) {
 }
 
 class Bet {
-  constructor(container, slider, val, min, max, button) {
-    this.container = container;
-    this.slider = slider;
-    this.val = val;
-    this.min = min;
-    this.max = max;
-    this.button = button;
+  constructor(
+    bettingRound,
+    parentElement,
+    rangeSlider,
+    inputDisplay,
+    minBet,
+    maxBet,
+    submitButton
+  ) {
+    // The [bettingRound] attribute will be:
+    // "pre_flop", "post_flop", "post_turn", or "post_river"
+    // Note, this attribute will operate as a query parameter.
+    this.bettingRound = bettingRound;
+    // The [parentElement] is the HTML element that...
+    // contains the user-betting system.
+    this.parentElement = parentElement;
+    // The [rangeSlider] is a unique HTML-input type that allows...
+    // users to manually select a value w/ a sliding mechanism.
+    this.rangeSlider = rangeSlider;
+    // The [inputDisplay] is an HTML 'label' element that...
+    // will be updated dynamically based on user-actions.
+    this.inputDisplay = inputDisplay;
+    this.minBet = minBet;
+    this.maxBet = maxBet;
+    this.submitButton = submitButton;
   }
 
-  revealKeyElements = () => (this.container.hidden = false);
-  setMinBet = () => this.slider.setAttribute('min', this.min);
-  setMaxBet = () => this.slider.setAttribute('max', this.max);
-  setDefaultValue = () => this.slider.setAttribute('value', this.min);
-  activateDisplay = () => (this.val.innerText = `[${this.slider.value}]`);
-  responsiveAllocator() {
-    this.slider.oninput = () => (this.val.innerHTML = `[${this.slider.value}]`);
+  revealUserBettingMechanism = () => (this.parentElement.hidden = false);
+  setMinBet = () => this.rangeSlider.setAttribute('min', this.minBet);
+  setMaxBet = () => this.rangeSlider.setAttribute('max', this.maxBet);
+  setDefaultInputVal = () =>
+    this.rangeSlider.setAttribute('value', this.minBet);
+  activateDisplay = () =>
+    (this.inputDisplay.innerText = `[${this.rangeSlider.value}]`);
+  responsiveDisplay() {
+    this.rangeSlider.oninput = () =>
+      (this.inputDisplay.innerHTML = `[${this.rangeSlider.value}]`);
   }
-  functionalButton() {
-    this.button.onclick = (evt) => {
+  buttonOnClickFunctionality() {
+    this.submitButton.onclick = (evt) => {
       evt.preventDefault();
-      console.log(`Raise: ${this.slider.value}`);
+      console.log(`Bet: ${this.rangeSlider.value}`);
+
+      if (this.bettingRound === 'pre_flop') {
+        preFlopRaiseCounter += 1;
+        console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
+      } else if (this.bettingRound === 'post_flop') {
+        postFlopRaiseCounter += 1;
+        console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
+      } else if (this.bettingRound === 'post_turn') {
+        postTurnRaiseCounter += 1;
+        console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
+      } else if (this.bettingRound === 'post_river') {
+        postRiverRaiseCounter += 1;
+        console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
+      }
+
+      this.parentElement.hidden = true;
+      foldButton.hidden = true;
+      if (document.getElementById('check-btn')) {
+        document.getElementById('check-btn').remove();
+      }
+      if (document.getElementById('call-btn')) {
+        document.getElementById('call-btn').remove();
+      }
+
+      let queryObject = {
+        bet: this.rangeSlider.value,
+        round: this.bettingRound,
+      };
+      postBetVal('/texas_hold_em/user_raise', queryObject);
+
+      function postBetVal(path, queryObject) {
+        try {
+          axios.post(path, queryObject).then(
+            (res) => {
+              if (queryObject['round'] === 'pre_flop') {
+                console.log(`Updated User Chips Commited: ${res.data}`);
+                updateCommitedChips(userCommitedChips, res.data);
+              } else {
+                let totalCommitedChips =
+                  Number(userCommitedChips.children[1].innerText) + res.data;
+                console.log(`Updated User Chips Commited: 
+                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+                updateCommitedChips(userCommitedChips, totalCommitedChips);
+              }
+
+              updatePot();
+              updateUserStack();
+              // Execute the [cortanaResponse()] function, which triggers...
+              // the ai-opp's decision making process in response to...
+              // the active-user's bet.
+              cortanaResponse();
+            },
+            (error) => {
+              console.log(error);
+            }
+          );
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      async function cortanaResponse() {
+        try {
+          const res = await axios.get(
+            `/texas_hold_em/ai_${queryObject['round']}_decision`
+          );
+          console.log(`Cortana decided to fold: ${isNaN(res.data)}`);
+
+          if (isNaN(res.data)) {
+            window.location = '/texas_hold_em/ai_opp_fold';
+          }
+
+          if (queryObject['round'] === 'pre_flop') {
+            console.log(`Updated AI Chips Commited: ${res.data}`);
+            updateCommitedChips(oppCommitedChips, res.data);
+          } else {
+            let totalCommitedChips =
+              Number(oppCommitedChips.children[1].innerText) + res.data;
+            console.log(`Updated AI Chips Commited: 
+              ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
+            updateCommitedChips(oppCommitedChips, totalCommitedChips);
+          }
+
+          updatePot();
+          updateOppStack();
+
+          if (
+            oppCommitedChips.children[1].innerText ==
+            userCommitedChips.children[1].innerText
+          ) {
+            console.log('Cortana decided to call.');
+
+            if (queryObject['round'] === 'pre_flop') {
+              revealFlopButton.hidden = false;
+            } else if (queryObject['round'] === 'post_flop') {
+              revealTurnButton.hidden = false;
+            } else if (queryObject['round'] === 'post_turn') {
+              revealRiverButton.hidden = false;
+            } else if (queryObject['round'] === 'post_river') {
+              generateShowdownButton();
+            }
+          }
+
+          if (
+            oppCommitedChips.children[1].innerText >
+            userCommitedChips.children[1].innerText
+          ) {
+            console.log('Cortana decided to re-raise.');
+
+            generateCallButton(`user_${queryObject['round']}_call`);
+            foldButton.hidden = false;
+
+            if (queryObject['round'] === 'pre_flop') {
+              preFlopRaiseCounter += 1;
+              console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
+              if (preFlopRaiseCounter < 3) {
+                let reRaise = new Bet(
+                  queryObject['round'],
+                  allocatorContainer,
+                  allocator,
+                  allocatorValue,
+                  oppCommitedChips.children[1].innerText -
+                    userCommitedChips.children[1].innerText +
+                    1,
+                  userChipCount.children[1].innerText,
+                  allocatorSubmitButton
+                );
+
+                reRaise.revealUserBettingMechanism();
+                reRaise.setMinBet();
+                reRaise.setMaxBet();
+                reRaise.setDefaultInputVal();
+                reRaise.activateDisplay();
+                reRaise.responsiveDisplay();
+                reRaise.buttonOnClickFunctionality();
+              } else {
+                console.log(
+                  'The maximum number of bets in a given round has been reached.'
+                );
+              }
+            } else if (queryObject['round'] === 'post_flop') {
+              postFlopRaiseCounter += 1;
+              console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
+              if (postFlopRaiseCounter < 3) {
+                let reRaise = new Bet(
+                  queryObject['round'],
+                  allocatorContainer,
+                  allocator,
+                  allocatorValue,
+                  oppCommitedChips.children[1].innerText -
+                    userCommitedChips.children[1].innerText +
+                    1,
+                  userChipCount.children[1].innerText,
+                  allocatorSubmitButton
+                );
+
+                reRaise.revealUserBettingMechanism();
+                reRaise.setMinBet();
+                reRaise.setMaxBet();
+                reRaise.setDefaultInputVal();
+                reRaise.activateDisplay();
+                reRaise.responsiveDisplay();
+                reRaise.buttonOnClickFunctionality();
+              } else {
+                console.log(
+                  'The maximum number of bets in a given round has been reached.'
+                );
+              }
+            } else if (queryObject['round'] === 'post_turn') {
+              postTurnRaiseCounter += 1;
+              console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
+              if (postTurnRaiseCounter < 3) {
+                let reRaise = new Bet(
+                  queryObject['round'],
+                  allocatorContainer,
+                  allocator,
+                  allocatorValue,
+                  oppCommitedChips.children[1].innerText -
+                    userCommitedChips.children[1].innerText +
+                    1,
+                  userChipCount.children[1].innerText,
+                  allocatorSubmitButton
+                );
+
+                reRaise.revealUserBettingMechanism();
+                reRaise.setMinBet();
+                reRaise.setMaxBet();
+                reRaise.setDefaultInputVal();
+                reRaise.activateDisplay();
+                reRaise.responsiveDisplay();
+                reRaise.buttonOnClickFunctionality();
+              } else {
+                console.log(
+                  'The maximum number of bets in a given round has been reached.'
+                );
+              }
+            } else if (queryObject['round'] === 'post_river') {
+              postRiverRaiseCounter += 1;
+              console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
+              if (postRiverRaiseCounter < 3) {
+                let reRaise = new Bet(
+                  queryObject['round'],
+                  allocatorContainer,
+                  allocator,
+                  allocatorValue,
+                  oppCommitedChips.children[1].innerText -
+                    userCommitedChips.children[1].innerText +
+                    1,
+                  userChipCount.children[1].innerText,
+                  allocatorSubmitButton
+                );
+
+                reRaise.revealUserBettingMechanism();
+                reRaise.setMinBet();
+                reRaise.setMaxBet();
+                reRaise.setDefaultInputVal();
+                reRaise.activateDisplay();
+                reRaise.responsiveDisplay();
+                reRaise.buttonOnClickFunctionality();
+              } else {
+                console.log(
+                  'The maximum number of bets in a given round has been reached.'
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
     };
   }
 }
@@ -313,6 +569,7 @@ window.onload = function action() {
           foldButton.hidden = true;
 
           let preFlopRaise = new Bet(
+            'pre_flop',
             allocatorContainer,
             allocator,
             allocatorValue,
@@ -323,13 +580,13 @@ window.onload = function action() {
             allocatorSubmitButton
           );
 
-          preFlopRaise.revealKeyElements();
+          preFlopRaise.revealUserBettingMechanism();
           preFlopRaise.setMinBet();
           preFlopRaise.setMaxBet();
-          preFlopRaise.setDefaultValue();
+          preFlopRaise.setDefaultInputVal();
           preFlopRaise.activateDisplay();
-          preFlopRaise.responsiveAllocator();
-          preFlopRaise.functionalButton();
+          preFlopRaise.responsiveDisplay();
+          preFlopRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText > userBlind.innerText
         ) {
@@ -339,6 +596,26 @@ window.onload = function action() {
           console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
 
           generateCallButton('/texas_hold_em/user_pre_flop_call');
+
+          let preFlopRaise = new Bet(
+            'pre_flop',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          preFlopRaise.revealUserBettingMechanism();
+          preFlopRaise.setMinBet();
+          preFlopRaise.setMaxBet();
+          preFlopRaise.setDefaultInputVal();
+          preFlopRaise.activateDisplay();
+          preFlopRaise.responsiveDisplay();
+          preFlopRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -348,6 +625,26 @@ window.onload = function action() {
   } else {
     console.log('The action is on the active user.');
     generateCallButton('/texas_hold_em/user_pre_flop_call');
+
+    let preFlopRaise = new Bet(
+      'pre_flop',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    preFlopRaise.revealUserBettingMechanism();
+    preFlopRaise.setMinBet();
+    preFlopRaise.setMaxBet();
+    preFlopRaise.setDefaultInputVal();
+    preFlopRaise.activateDisplay();
+    preFlopRaise.responsiveDisplay();
+    preFlopRaise.buttonOnClickFunctionality();
   }
 };
 
@@ -426,6 +723,26 @@ revealFlopButton.onclick = function revealFlop(evt) {
         ) {
           console.log('Cortana has decided to check.');
           generateCheckButton('/texas_hold_em/user_post_flop_check');
+
+          let postFlopRaise = new Bet(
+            'post_flop',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postFlopRaise.revealUserBettingMechanism();
+          postFlopRaise.setMinBet();
+          postFlopRaise.setMaxBet();
+          postFlopRaise.setDefaultInputVal();
+          postFlopRaise.activateDisplay();
+          postFlopRaise.responsiveDisplay();
+          postFlopRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText >
           userCommitedChips.children[1].innerText
@@ -434,6 +751,26 @@ revealFlopButton.onclick = function revealFlop(evt) {
           postFlopRaiseCounter += 1;
           console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
           generateCallButton('/texas_hold_em/user_post_flop_call');
+
+          let postFlopRaise = new Bet(
+            'post_flop',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postFlopRaise.revealUserBettingMechanism();
+          postFlopRaise.setMinBet();
+          postFlopRaise.setMaxBet();
+          postFlopRaise.setDefaultInputVal();
+          postFlopRaise.activateDisplay();
+          postFlopRaise.responsiveDisplay();
+          postFlopRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -443,6 +780,26 @@ revealFlopButton.onclick = function revealFlop(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_flop_check');
+
+    let postFlopRaise = new Bet(
+      'post_flop',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    postFlopRaise.revealUserBettingMechanism();
+    postFlopRaise.setMinBet();
+    postFlopRaise.setMaxBet();
+    postFlopRaise.setDefaultInputVal();
+    postFlopRaise.activateDisplay();
+    postFlopRaise.responsiveDisplay();
+    postFlopRaise.buttonOnClickFunctionality();
   }
 };
 
@@ -496,6 +853,26 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log('Cortana has decided to check.');
 
           generateCheckButton('/texas_hold_em/user_post_turn_check');
+
+          let postTurnRaise = new Bet(
+            'post_turn',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postTurnRaise.revealUserBettingMechanism();
+          postTurnRaise.setMinBet();
+          postTurnRaise.setMaxBet();
+          postTurnRaise.setDefaultInputVal();
+          postTurnRaise.activateDisplay();
+          postTurnRaise.responsiveDisplay();
+          postTurnRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText >
           userCommitedChips.children[1].innerText
@@ -505,6 +882,26 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
 
           generateCallButton('/texas_hold_em/user_post_turn_call');
+
+          let postTurnRaise = new Bet(
+            'post_turn',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postTurnRaise.revealUserBettingMechanism();
+          postTurnRaise.setMinBet();
+          postTurnRaise.setMaxBet();
+          postTurnRaise.setDefaultInputVal();
+          postTurnRaise.activateDisplay();
+          postTurnRaise.responsiveDisplay();
+          postTurnRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -514,6 +911,26 @@ revealTurnButton.onclick = function revealTurn(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_turn_check');
+
+    let postTurnRaise = new Bet(
+      'post_turn',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    postTurnRaise.revealUserBettingMechanism();
+    postTurnRaise.setMinBet();
+    postTurnRaise.setMaxBet();
+    postTurnRaise.setDefaultInputVal();
+    postTurnRaise.activateDisplay();
+    postTurnRaise.responsiveDisplay();
+    postTurnRaise.buttonOnClickFunctionality();
   }
 };
 
@@ -571,6 +988,26 @@ revealRiverButton.onclick = function revealRiver(evt) {
           console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
 
           generateCallButton('/texas_hold_em/user_post_river_call');
+
+          let postRiverRaise = new Bet(
+            'post_river',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postRiverRaise.revealUserBettingMechanism();
+          postRiverRaise.setMinBet();
+          postRiverRaise.setMaxBet();
+          postRiverRaise.setDefaultInputVal();
+          postRiverRaise.activateDisplay();
+          postRiverRaise.responsiveDisplay();
+          postRiverRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText ==
           userCommitedChips.children[1].innerText
@@ -578,6 +1015,26 @@ revealRiverButton.onclick = function revealRiver(evt) {
           console.log('Cortana has decided to check.');
 
           generateCheckButton('/texas_hold_em/user_post_river_check');
+
+          let postRiverRaise = new Bet(
+            'post_river',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postRiverRaise.revealUserBettingMechanism();
+          postRiverRaise.setMinBet();
+          postRiverRaise.setMaxBet();
+          postRiverRaise.setDefaultInputVal();
+          postRiverRaise.activateDisplay();
+          postRiverRaise.responsiveDisplay();
+          postRiverRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -587,5 +1044,25 @@ revealRiverButton.onclick = function revealRiver(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_river_check');
+
+    let postRiverRaise = new Bet(
+      'post_river',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    postRiverRaise.revealUserBettingMechanism();
+    postRiverRaise.setMinBet();
+    postRiverRaise.setMaxBet();
+    postRiverRaise.setDefaultInputVal();
+    postRiverRaise.activateDisplay();
+    postRiverRaise.responsiveDisplay();
+    postRiverRaise.buttonOnClickFunctionality();
   }
 };

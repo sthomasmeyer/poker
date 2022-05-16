@@ -37,9 +37,9 @@ that is meant to be manipulated by its "children", we must first write... -->
         <td><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
 
         <td hidden id="allocator-container">
-          <form action="/texas_hold_em/user_raise">
-            <input id="allocator" type="range">
-            <label id="allocator-val"></label>
+          <form id="allocator-form" action="/texas_hold_em/user_raise">
+            <input id="allocator" type="range" name="bet-val">
+            <label id="allocator-val" name="bet-allocator"></label>
             <button id="allocator-submit-btn">Raise</button>
           </form>
         </td>

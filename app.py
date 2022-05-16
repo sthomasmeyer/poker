@@ -12,7 +12,9 @@ import math
 
 # Import Flask itself, from [flask], and import all of the Flask features...
 # (i.e., render_template, request) that you will be using in this application.
-from flask import Flask, jsonify, request, render_template, redirect, flash, session, g
+from flask import Flask, jsonify, request, render_template, redirect, flash, session
+
+from flask_cors import CORS
 
 # Import SQLAlchemy (db), the [connect_db] function, and the classes you've created from the [models.py] file.
 from models import bcrypt, db, connect_db, User, TexasHoldEm, TexasHoldEmPot
@@ -43,11 +45,12 @@ new_secret_key = secrets.SUPER_SECRET_KEY
 new_db_connection = secrets.LOCAL_SQL_DB
 
 app = Flask(__name__)
+CORS(app)
 
 # Config(ure) the application's database URI...
 # Use the [os.environ] command to access the environmental variables...
 # then, employ Python's [get()] method to capture the value associated...
-# w/ "DATABASE_URL". 
+# w/ "DATABASE_URL".
 # Note, in this instance a default is provided...
 # which will connect this application to a local SQL database...
 # format --> "postgresql://[user:[password]@[host-name]:[port number]/database_name]"
@@ -547,6 +550,69 @@ def update_pot():
     return active_pot.total_chips
 
 
+@app.route("/texas_hold_em/user_raise", methods=["GET", "POST"])
+def user_raise():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+
+    saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
+    active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
+
+    if request.method == "POST":
+        betting_round = request.json["round"]
+        print("The current betting-round is: " +request.json["round"])
+
+        session[betting_round + "_raise_count"] += 1
+        print(session[betting_round + "_raise_count"])
+
+        if betting_round == "pre_flop":
+            user_commited_chips = int(active_pot.user_pre_flop)
+        elif betting_round == "post_flop":
+            if active_pot.user_post_flop:
+                user_commited_chips = int(active_pot.user_post_flop)
+            else:
+                user_commited_chips = 0
+        elif betting_round == "post_turn":
+            if active_pot.user_post_turn:
+                user_commited_chips = int(active_pot.user_post_turn)
+            else:
+                user_commited_chips = 0
+        elif betting_round == "post_river":
+            if active_pot.user_post_river:
+                user_commited_chips = int(active_pot.user_post_river)
+            else:
+                user_commited_chips = 0
+
+        raise_val = request.json["bet"]
+        print("The active-user bets: " +request.json["bet"])
+
+        user_commited_chips += int(raise_val)
+        print(f"Updated user chips commited: {user_commited_chips}")
+
+        adjusted_user_capital = math.trunc(int(user.capital) - int(raise_val))
+        user.capital = json.dumps(adjusted_user_capital)
+
+        adjusted_total_chip_count = math.trunc(int(active_pot.total_chips) + int(raise_val))
+        active_pot.total_chips = json.dumps(adjusted_total_chip_count)
+
+        if betting_round == "pre_flop":
+            active_pot.user_pre_flop = json.dumps(user_commited_chips)
+            db.session.commit()
+            return active_pot.user_pre_flop
+        elif betting_round == "post_flop":
+            active_pot.user_post_flop = json.dumps(user_commited_chips)
+            db.session.commit()
+            return active_pot.user_post_flop
+        elif betting_round == "post_turn":
+            active_pot.user_post_turn = json.dumps(user_commited_chips)
+            db.session.commit()
+            return active_pot.user_post_turn
+        elif betting_round == "post_river":
+            active_pot.user_post_river = json.dumps(user_commited_chips)
+            db.session.commit()
+            return active_pot.user_post_river
+
+
 @app.route("/texas_hold_em/ai_pre_flop_decision", methods=["POST", "GET"])
 def ai_pre_flop_action():
     user_id = session["user_id"]
@@ -557,12 +623,15 @@ def ai_pre_flop_action():
 
     # The current number of chips the ai-opp has commited to the pot:
     ai_commited_chips = int(active_pot.ai_pre_flop)
+    print(f"Pre-flop AI Commited Chips: {ai_commited_chips}")
 
     # The current number of chips the active-user has commited to the pot:
     user_commited_chips = int(active_pot.user_pre_flop)
+    print(f"Pre-flop User Commited Chips: {user_commited_chips}")
 
     # The total number of chips in the pot:
     pot_val = int(active_pot.total_chips)
+    print(f"Pre-flop Total Pot Val: {pot_val}")
 
     # Capture the ai-opp's hand from the db. Then, create two instances...
     # of the [Card]-object w/ the captured info (+) store them in a list.
@@ -577,7 +646,16 @@ def ai_pre_flop_action():
 
     print(f"Pre-flop Hand Rank: {ai_hand_rank}")
 
-    ai_action = Action(active_pot, ai_hand_rank, "pre_flop", session["pre_flop_raise_count"], ai_commited_chips, ai_stack, user_commited_chips, pot_val)
+    ai_action = Action(
+        active_pot,
+        ai_hand_rank,
+        "pre_flop",
+        session["pre_flop_raise_count"],
+        ai_commited_chips,
+        ai_stack,
+        user_commited_chips,
+        pot_val,
+    )
     ai_action.apply_tier()
     print(f"Pre-flop TIER: {ai_action.tier}")
     ai_final_decision = ai_action.decide()
@@ -596,7 +674,6 @@ def user_pre_flop_call():
     user = User.query.get_or_404(user_id)
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
-
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
     # This [if]-statement ensures that the user-decision to call is reasonable.
@@ -700,14 +777,14 @@ def ai_post_flop_action():
     print(f"Post-flop Hand Rank: {ai_hand_rank}")
 
     ai_action = Action(
-      active_pot, 
-      ai_hand_rank, 
-      "post_flop", 
-      session["post_flop_raise_count"], 
-      ai_commited_chips, 
-      ai_stack, 
-      user_commited_chips, 
-      pot_val
+        active_pot,
+        ai_hand_rank,
+        "post_flop",
+        session["post_flop_raise_count"],
+        ai_commited_chips,
+        ai_stack,
+        user_commited_chips,
+        pot_val,
     )
     # Use the [apply_tier()] method to assign a strength-level to the...
     # given hand -- the strongest hands are ranked "tier-one" and the...
@@ -868,14 +945,14 @@ def ai_post_turn_action():
     print(f"Post-turn Hand Rank: {ai_hand_rank}")
 
     ai_action = Action(
-      active_pot, 
-      ai_hand_rank, 
-      "post_turn", 
-      session["post_turn_raise_count"], 
-      ai_commited_chips, 
-      ai_stack, 
-      user_commited_chips, 
-      pot_val
+        active_pot,
+        ai_hand_rank,
+        "post_turn",
+        session["post_turn_raise_count"],
+        ai_commited_chips,
+        ai_stack,
+        user_commited_chips,
+        pot_val,
     )
     ai_action.apply_tier()
     print(f"Post-turn TIER: {ai_action.tier}")
@@ -1009,14 +1086,14 @@ def ai_post_river_action():
     print(f"Post-river Hand Rank: {ai_hand_rank}")
 
     ai_action = Action(
-      active_pot, 
-      ai_hand_rank, 
-      "post_river", 
-      session["post_river_raise_count"], 
-      ai_commited_chips, 
-      ai_stack, 
-      user_commited_chips, 
-      pot_val
+        active_pot,
+        ai_hand_rank,
+        "post_river",
+        session["post_river_raise_count"],
+        ai_commited_chips,
+        ai_stack,
+        user_commited_chips,
+        pot_val,
     )
     ai_action.apply_tier()
     print(f"Post-river TIER: {ai_action.tier}")
@@ -1165,7 +1242,7 @@ def showdown():
 
         flash(f"Previous hand: [loss]")
         return redirect(f"/texas_hold_em/{user_id}")
-    
+
     if saved_hand.user_score == saved_hand.computer_opp_score:
         int_pot = int(active_pot.total_chips)
         adjusted_user_capital = math.trunc(int(user.capital) + int(int_pot / 2))
