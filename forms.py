@@ -5,17 +5,13 @@ from flask_wtf import FlaskForm
 # These generally represent scalar data types w/ single values, and...
 # refer to a single input from the form. For example, there is a [DecimalField()]...
 # w/ parameters related to # of places, rounding (up or down), and number format.
-from wtforms import StringField, EmailField, PasswordField, IntegerRangeField
+from wtforms import StringField, EmailField, PasswordField
 
 # Import desired validators (i.e., URL, InputRequired) from [wtforms.validators].
 # Validators in WTForms are designd to ensure a given input fulfills some criterion...
 # For example, there is a [Regexp()] validator that compares the value of the field...
 # against a user-provided regexp.
 from wtforms.validators import InputRequired, Email, Length, Regexp, EqualTo
-
-
-# class TexasHoldEmBet(FlaskForm):
-#     bet = IntegerRangeField("Bet")
 
 
 class UserLoginForm(FlaskForm):

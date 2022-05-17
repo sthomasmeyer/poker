@@ -214,15 +214,7 @@ function generateCallButton(path) {
       try {
         const res = await axios.get(path);
 
-        totalCommitedChips =
-          Number(userCommitedChips.children[1].innerText) + res.data;
-
-        if (path.includes('pre_flop')) {
-          updateCommitedChips(userCommitedChips, res.data);
-        } else {
-          updateCommitedChips(userCommitedChips, totalCommitedChips);
-        }
-
+        updateCommitedChips(userCommitedChips, res.data);
         updatePot();
         updateUserStack();
       } catch (error) {
@@ -231,6 +223,39 @@ function generateCallButton(path) {
     }
   };
 }
+
+function generateShowdownButton() {
+  let showdownContainer = document.createElement('td');
+
+  let showdownForm = document.createElement('form');
+  showdownForm.setAttribute('action', '/texas_hold_em/showdown');
+
+  let showdownButton = document.createElement('button');
+  showdownButton.innerText = 'Showdown';
+  showdownButton.onclick = function showdown(evt) {
+    evt.preventDefault();
+    setTimeout(() => {
+      showdownForm.submit();
+    }, 1000);
+    showdownButton.remove();
+
+    getOppCards();
+    getScore('/texas_hold_em/user_score', userScore);
+    getScore('/texas_hold_em/computer_opp_score', oppScore);
+
+    setTimeout(() => {
+      alert(`
+      Press 'OK' to see the next hand
+      `);
+    }, 500);
+  };
+
+  showdownForm.append(showdownButton);
+  showdownContainer.append(showdownForm);
+  userOptions.append(showdownContainer);
+}
+
+/* SECTION [2]: THE 'BET' CLASS */
 
 class Bet {
   constructor(
@@ -270,11 +295,15 @@ class Bet {
     this.rangeSlider.oninput = () =>
       (this.inputDisplay.innerHTML = `[${this.rangeSlider.value}]`);
   };
+
+  // The following method establishes a protocol that will be triggered...
+  // if the user clicks the [submitButton] assigned to this class.
   buttonOnClickFunctionality() {
     this.submitButton.onclick = (evt) => {
       evt.preventDefault();
       console.log(`The active-user bets: ${this.rangeSlider.value}`);
 
+      // If the user raises, then update the appropriate raise-counter.
       if (this.bettingRound === 'pre_flop') {
         preFlopRaiseCounter += 1;
         console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
@@ -289,6 +318,8 @@ class Bet {
         console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
       }
 
+      // Hide the HTML elements aligned to: 1) this user-beting system...
+      // 2) the 'fold' option, and 3) the 'check' / 'call' option.
       this.parentElement.hidden = true;
       foldButton.hidden = true;
       if (document.getElementById('check-btn')) {
@@ -298,27 +329,24 @@ class Bet {
         document.getElementById('call-btn').remove();
       }
 
+      // Create a JSON-formatted object w/ key information...
+      // (bet value + betting round) to send as an HTTP 'POST'...
+      // request from the client to the server.
       let queryObject = {
         bet: this.rangeSlider.value,
         round: this.bettingRound,
       };
+
+      // Execute the asynchronous [postBetVal()] function.
       postBetVal('/texas_hold_em/user_raise', queryObject);
 
       function postBetVal(path, queryObject) {
         try {
           axios.post(path, queryObject).then(
             (res) => {
-              if (queryObject['round'] === 'pre_flop') {
-                console.log(`Updated User Chips Commited: ${res.data}`);
-                updateCommitedChips(userCommitedChips, res.data);
-              } else {
-                let totalCommitedChips =
-                  Number(userCommitedChips.children[1].innerText) + res.data;
-                console.log(`Updated User Chips Commited: 
-                  ${userCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-                updateCommitedChips(userCommitedChips, totalCommitedChips);
-              }
+              console.log(`Updated User Chips Commited: ${res.data}`);
 
+              updateCommitedChips(userCommitedChips, res.data);
               updatePot();
               updateUserStack();
               // Execute the [cortanaResponse()] function, which triggers...
@@ -346,47 +374,11 @@ class Bet {
             window.location = '/texas_hold_em/ai_opp_fold';
           }
 
-          if (queryObject['round'] === 'pre_flop') {
-            console.log(`Updated AI Chips Commited: ${res.data}`);
-            // Update the value associated w/ the number of...
-            // chips the ai-opp has commited.
-            updateCommitedChips(oppCommitedChips, res.data);
-          } else {
-            let totalCommitedChips =
-              Number(oppCommitedChips.children[1].innerText) + res.data;
-            console.log(`Updated AI Chips Commited: 
-              ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-            updateCommitedChips(oppCommitedChips, totalCommitedChips);
-          }
+          console.log(`Updated AI Chips Commited: ${res.data}`);
 
-          // Execute [updatePot()] + [updateOppStack()] functions.
+          updateCommitedChips(oppCommitedChips, res.data);
           updatePot();
           updateOppStack();
-
-          // The following [setTimeout()] function is purely for de-bugging purposes.
-          setTimeout(() => {
-            if (
-              oppCommitedChips.children[1].innerText ==
-              userCommitedChips.children[1].innerText
-            ) {
-              console.log('Cortana decided to call.');
-            } else if (
-              oppCommitedChips.children[1].innerText >
-              userCommitedChips.children[1].innerText
-            ) {
-              console.log('Cortana decided to re-raise.');
-            } else if (3 === 3) {
-              console.log(isNaN(oppCommitedChips.children[1].innerText));
-              console.log(isNaN(userCommitedChips.children[1].innerText));
-              console.log(
-                `Opp Commited: ${oppCommitedChips.children[1].innerText} [v] User Commited: ${userCommitedChips.children[1].innerText}`
-              );
-              console.log(
-                oppCommitedChips.children[1].innerHTML !=
-                  userCommitedChips.children[1].innerHTML
-              );
-            }
-          }, 500);
 
           if (
             oppCommitedChips.children[1].innerText ==
@@ -394,6 +386,8 @@ class Bet {
           ) {
             console.log('Cortana decided to call.');
 
+            // If the ai-opp decides to call, display the appropriate...
+            // button for users to advance to the next part of the hand.
             if (queryObject['round'] === 'pre_flop') {
               revealFlopButton.hidden = false;
             } else if (queryObject['round'] === 'post_flop') {
@@ -405,125 +399,64 @@ class Bet {
             }
           }
 
-          // REVISIT!!! I adjusted the parameters associated w/ this [if]...
-          // statement in order to fix an unusual error.
           if (
             oppCommitedChips.children[1].innerText !=
             userCommitedChips.children[1].innerText
           ) {
             console.log('Cortana decided to re-raise.');
 
+            let raiseCount = 0;
+
+            // Update the appropriate raise-counter.
+            if (queryObject['round'] === 'pre_flop') {
+              preFlopRaiseCounter += 1;
+              raiseCount = preFlopRaiseCounter;
+              console.log(`Pre-flop Raise Count: ${raiseCount}`);
+            } else if (queryObject['round'] === 'post_flop') {
+              postFlopRaiseCounter += 1;
+              raiseCount = postFlopRaiseCounter;
+              console.log(`Post-flop Raise Count: ${raiseCount}`);
+            } else if (queryObject['round'] === 'post_turn') {
+              postTurnRaiseCounter += 1;
+              raiseCount = postTurnRaiseCounter;
+              console.log(`Post-turn Raise Count: ${raiseCount}`);
+            } else if (queryObject['round'] === 'post_river') {
+              postRiverRaiseCounter += 1;
+              raiseCount = postRiverRaiseCounter;
+              console.log(`Post-river Raise Count: ${raiseCount}`);
+            }
+
+            // Generate a CALL button for users (+) reveal the FOLD button.
             generateCallButton(`user_${queryObject['round']}_call`);
             foldButton.hidden = false;
 
-            if (queryObject['round'] === 'pre_flop') {
-              preFlopRaiseCounter += 1;
-              console.log(`Pre-flop Raise Count: ${preFlopRaiseCounter}`);
-              if (preFlopRaiseCounter < 3) {
-                let reRaise = new Bet(
-                  queryObject['round'],
-                  allocatorContainer,
-                  allocator,
-                  allocatorValue,
-                  oppCommitedChips.children[1].innerText -
-                    userCommitedChips.children[1].innerText +
-                    1,
-                  userChipCount.children[1].innerText,
-                  allocatorSubmitButton
-                );
+            // In each betting round of Texas Hold'em there can be one initial bet...
+            // followed by a maximum of three raises. Users will have the option...
+            // to re-raise "over-the-top" of their opponent, as long as this max...
+            // limit has not been reached.
+            if (raiseCount <= 3) {
+              let reRaise = new Bet(
+                queryObject['round'],
+                allocatorContainer,
+                allocator,
+                allocatorValue,
+                oppCommitedChips.children[1].innerText -
+                  userCommitedChips.children[1].innerText +
+                  1,
+                userChipCount.children[1].innerText,
+                allocatorSubmitButton
+              );
 
-                reRaise.revealUserBettingMechanism();
-                reRaise.setMinBet();
-                reRaise.setMaxBet();
-                reRaise.setDefaultInputVal();
-                reRaise.activateDisplay();
-                reRaise.buttonOnClickFunctionality();
-              } else {
-                console.log(
-                  'The maximum number of bets in a given round has been reached.'
-                );
-              }
-            } else if (queryObject['round'] === 'post_flop') {
-              postFlopRaiseCounter += 1;
-              console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
-              if (postFlopRaiseCounter < 3) {
-                let reRaise = new Bet(
-                  queryObject['round'],
-                  allocatorContainer,
-                  allocator,
-                  allocatorValue,
-                  oppCommitedChips.children[1].innerText -
-                    userCommitedChips.children[1].innerText +
-                    1,
-                  userChipCount.children[1].innerText,
-                  allocatorSubmitButton
-                );
-
-                reRaise.revealUserBettingMechanism();
-                reRaise.setMinBet();
-                reRaise.setMaxBet();
-                reRaise.setDefaultInputVal();
-                reRaise.activateDisplay();
-                reRaise.buttonOnClickFunctionality();
-              } else {
-                console.log(
-                  'The maximum number of bets in a given round has been reached.'
-                );
-              }
-            } else if (queryObject['round'] === 'post_turn') {
-              postTurnRaiseCounter += 1;
-              console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
-              if (postTurnRaiseCounter < 3) {
-                let reRaise = new Bet(
-                  queryObject['round'],
-                  allocatorContainer,
-                  allocator,
-                  allocatorValue,
-                  oppCommitedChips.children[1].innerText -
-                    userCommitedChips.children[1].innerText +
-                    1,
-                  userChipCount.children[1].innerText,
-                  allocatorSubmitButton
-                );
-
-                reRaise.revealUserBettingMechanism();
-                reRaise.setMinBet();
-                reRaise.setMaxBet();
-                reRaise.setDefaultInputVal();
-                reRaise.activateDisplay();
-                reRaise.buttonOnClickFunctionality();
-              } else {
-                console.log(
-                  'The maximum number of bets in a given round has been reached.'
-                );
-              }
-            } else if (queryObject['round'] === 'post_river') {
-              postRiverRaiseCounter += 1;
-              console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
-              if (postRiverRaiseCounter < 3) {
-                let reRaise = new Bet(
-                  queryObject['round'],
-                  allocatorContainer,
-                  allocator,
-                  allocatorValue,
-                  oppCommitedChips.children[1].innerText -
-                    userCommitedChips.children[1].innerText +
-                    1,
-                  userChipCount.children[1].innerText,
-                  allocatorSubmitButton
-                );
-
-                reRaise.revealUserBettingMechanism();
-                reRaise.setMinBet();
-                reRaise.setMaxBet();
-                reRaise.setDefaultInputVal();
-                reRaise.activateDisplay();
-                reRaise.buttonOnClickFunctionality();
-              } else {
-                console.log(
-                  'The maximum number of bets in a given round has been reached.'
-                );
-              }
+              reRaise.revealUserBettingMechanism();
+              reRaise.setMinBet();
+              reRaise.setMaxBet();
+              reRaise.setDefaultInputVal();
+              reRaise.activateDisplay();
+              reRaise.buttonOnClickFunctionality();
+            } else {
+              console.log(
+                'The maximum number of raises in this round of betting has been reached.'
+              );
             }
           }
         } catch (error) {
@@ -534,38 +467,7 @@ class Bet {
   }
 }
 
-function generateShowdownButton() {
-  let showdownContainer = document.createElement('td');
-
-  let showdownForm = document.createElement('form');
-  showdownForm.setAttribute('action', '/texas_hold_em/showdown');
-
-  let showdownButton = document.createElement('button');
-  showdownButton.innerText = 'Showdown';
-  showdownButton.onclick = function showdown(evt) {
-    evt.preventDefault();
-    setTimeout(() => {
-      showdownForm.submit();
-    }, 1000);
-    showdownButton.remove();
-
-    getOppCards();
-    getScore('/texas_hold_em/user_score', userScore);
-    getScore('/texas_hold_em/computer_opp_score', oppScore);
-
-    setTimeout(() => {
-      alert(`
-      Press 'OK' to see the next hand
-      `);
-    }, 500);
-  };
-
-  showdownForm.append(showdownButton);
-  showdownContainer.append(showdownForm);
-  userOptions.append(showdownContainer);
-}
-
-/* SECTION [2]: PRE-FLOP ACTION */
+/* SECTION [3]: PRE-FLOP ACTION */
 
 // This [action()] function is triggered "onload"...
 window.onload = function action() {
@@ -687,7 +589,7 @@ window.onload = function action() {
   }
 };
 
-/* SECTION [3]: POST-FLOP ACTION */
+/* SECTION [4]: POST-FLOP ACTION */
 
 revealFlopButton.onclick = function revealFlop(evt) {
   evt.preventDefault();
@@ -738,18 +640,10 @@ revealFlopButton.onclick = function revealFlop(evt) {
           window.location = '/texas_hold_em/ai_opp_fold';
         }
 
-        // At this point in the hand, the total number of chips...
-        // the ai-opp has commited is the sum of their pre-flop...
-        // commitment (oppCommitedChips.children[1].innerText)...
-        // and the result (res.data) of this GET request.
-        totalCommitedChips =
-          Number(oppCommitedChips.children[1].innerText) + res.data;
-        console.log(`Post-flop AI Chips Commited: 
-        ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-
         // Update the value associated w/ the number of...
         // chips the ai-opp has commited.
-        updateCommitedChips(oppCommitedChips, totalCommitedChips);
+        updateCommitedChips(oppCommitedChips, res.data);
+
         // Execute [updatePot()] + [updateOppStack()] functions.
         updatePot();
         updateOppStack();
@@ -762,6 +656,25 @@ revealFlopButton.onclick = function revealFlop(evt) {
         ) {
           console.log('Cortana has decided to check.');
           generateCheckButton('/texas_hold_em/user_post_flop_check');
+
+          let postFlopRaise = new Bet(
+            'post_flop',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postFlopRaise.revealUserBettingMechanism();
+          postFlopRaise.setMinBet();
+          postFlopRaise.setMaxBet();
+          postFlopRaise.setDefaultInputVal();
+          postFlopRaise.activateDisplay();
+          postFlopRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText !=
           userCommitedChips.children[1].innerText
@@ -770,6 +683,25 @@ revealFlopButton.onclick = function revealFlop(evt) {
           postFlopRaiseCounter += 1;
           console.log(`Post-flop Raise Count: ${postFlopRaiseCounter}`);
           generateCallButton('/texas_hold_em/user_post_flop_call');
+
+          let postFlopRaise = new Bet(
+            'post_flop',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postFlopRaise.revealUserBettingMechanism();
+          postFlopRaise.setMinBet();
+          postFlopRaise.setMaxBet();
+          postFlopRaise.setDefaultInputVal();
+          postFlopRaise.activateDisplay();
+          postFlopRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -779,10 +711,29 @@ revealFlopButton.onclick = function revealFlop(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_flop_check');
+
+    let postFlopRaise = new Bet(
+      'post_flop',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    postFlopRaise.revealUserBettingMechanism();
+    postFlopRaise.setMinBet();
+    postFlopRaise.setMaxBet();
+    postFlopRaise.setDefaultInputVal();
+    postFlopRaise.activateDisplay();
+    postFlopRaise.buttonOnClickFunctionality();
   }
 };
 
-/* SECTION [4]: POST-TURN ACTION */
+/* SECTION [5]: POST-TURN ACTION */
 
 revealTurnButton.onclick = function revealTurn(evt) {
   evt.preventDefault();
@@ -816,12 +767,7 @@ revealTurnButton.onclick = function revealTurn(evt) {
           window.location = '/texas_hold_em/ai_opp_fold';
         }
 
-        totalCommitedChips =
-          Number(oppCommitedChips.children[1].innerText) + res.data;
-        console.log(`Post-turn AI Chips Commited: 
-        ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-
-        updateCommitedChips(oppCommitedChips, totalCommitedChips);
+        updateCommitedChips(oppCommitedChips, res.data);
         updatePot();
         updateOppStack();
 
@@ -832,6 +778,25 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log('Cortana has decided to check.');
 
           generateCheckButton('/texas_hold_em/user_post_turn_check');
+
+          let postTurnRaise = new Bet(
+            'post_turn',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postTurnRaise.revealUserBettingMechanism();
+          postTurnRaise.setMinBet();
+          postTurnRaise.setMaxBet();
+          postTurnRaise.setDefaultInputVal();
+          postTurnRaise.activateDisplay();
+          postTurnRaise.buttonOnClickFunctionality();
         } else if (
           oppCommitedChips.children[1].innerText !=
           userCommitedChips.children[1].innerText
@@ -839,8 +804,26 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log('Cortana decided to raise.');
           postTurnRaiseCounter += 1;
           console.log(`Post-turn Raise Count: ${postTurnRaiseCounter}`);
-
           generateCallButton('/texas_hold_em/user_post_turn_call');
+
+          let postTurnRaise = new Bet(
+            'post_turn',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postTurnRaise.revealUserBettingMechanism();
+          postTurnRaise.setMinBet();
+          postTurnRaise.setMaxBet();
+          postTurnRaise.setDefaultInputVal();
+          postTurnRaise.activateDisplay();
+          postTurnRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -850,10 +833,29 @@ revealTurnButton.onclick = function revealTurn(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_turn_check');
+
+    let postTurnRaise = new Bet(
+      'post_turn',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    postTurnRaise.revealUserBettingMechanism();
+    postTurnRaise.setMinBet();
+    postTurnRaise.setMaxBet();
+    postTurnRaise.setDefaultInputVal();
+    postTurnRaise.activateDisplay();
+    postTurnRaise.buttonOnClickFunctionality();
   }
 };
 
-/* SECTION [5]: POST-RIVER ACTION */
+/* SECTION [6]: POST-RIVER ACTION */
 
 revealRiverButton.onclick = function revealRiver(evt) {
   evt.preventDefault();
@@ -889,56 +891,63 @@ revealRiverButton.onclick = function revealRiver(evt) {
           window.location = '/texas_hold_em/ai_opp_fold';
         }
 
-        totalCommitedChips =
-          Number(oppCommitedChips.children[1].innerText) + res.data;
-        console.log(`Post-river AI Chips Commited: 
-        ${oppCommitedChips.children[1].innerText} + ${res.data} = ${totalCommitedChips}`);
-
-        updateCommitedChips(oppCommitedChips, totalCommitedChips);
+        updateCommitedChips(oppCommitedChips, res.data);
         updatePot();
         updateOppStack();
 
-        // The following [setTimeout()] function is purely for de-bugging purposes.
-        setTimeout(() => {
-          if (
-            oppCommitedChips.children[1].innerText ==
-            userCommitedChips.children[1].innerText
-          ) {
-            console.log('Cortana decided to call.');
-          } else if (
-            oppCommitedChips.children[1].innerText >
-            userCommitedChips.children[1].innerText
-          ) {
-            console.log('Cortana decided to re-raise.');
-          } else if (3 === 3) {
-            console.log(isNaN(oppCommitedChips.children[1].innerText));
-            console.log(isNaN(userCommitedChips.children[1].innerText));
-            console.log(
-              `Opp Commited: ${oppCommitedChips.children[1].innerText} [v] User Commited: ${userCommitedChips.children[1].innerText}`
-            );
-            console.log(
-              oppCommitedChips.children[1].innerHTML !=
-                userCommitedChips.children[1].innerHTML
-            );
-          }
-        }, 500);
-
         if (
-          oppCommitedChips.children[1].innerText !=
-          userCommitedChips.children[1].innerText
-        ) {
-          console.log('Cortana decided to raise.');
-          postRiverRaiseCounter += 1;
-          console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
-
-          generateCallButton('/texas_hold_em/user_post_river_call');
-        } else if (
           oppCommitedChips.children[1].innerText ==
           userCommitedChips.children[1].innerText
         ) {
-          console.log('Cortana has decided to check.');
+          console.log('Cortana decided to check.');
 
           generateCheckButton('/texas_hold_em/user_post_river_check');
+
+          let postRiverRaise = new Bet(
+            'post_river',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postRiverRaise.revealUserBettingMechanism();
+          postRiverRaise.setMinBet();
+          postRiverRaise.setMaxBet();
+          postRiverRaise.setDefaultInputVal();
+          postRiverRaise.activateDisplay();
+          postRiverRaise.buttonOnClickFunctionality();
+        } else if (
+          oppCommitedChips.children[1].innerText !=
+          userCommitedChips.children[1].innerText
+        ) {
+          console.log('Cortana has decided to raise.');
+          postRiverRaiseCounter += 1;
+          console.log(`Post-river Raise Count: ${postRiverRaiseCounter}`);
+          generateCallButton('/texas_hold_em/user_post_river_call');
+
+          let postRiverRaise = new Bet(
+            'post_river',
+            allocatorContainer,
+            allocator,
+            allocatorValue,
+            oppCommitedChips.children[1].innerText -
+              userCommitedChips.children[1].innerText +
+              1,
+            userChipCount.children[1].innerText,
+            allocatorSubmitButton
+          );
+
+          postRiverRaise.revealUserBettingMechanism();
+          postRiverRaise.setMinBet();
+          postRiverRaise.setMaxBet();
+          postRiverRaise.setDefaultInputVal();
+          postRiverRaise.activateDisplay();
+          postRiverRaise.buttonOnClickFunctionality();
         }
       } catch (error) {
         console.log(error);
@@ -948,5 +957,24 @@ revealRiverButton.onclick = function revealRiver(evt) {
   } else {
     console.log('The action is on the active user.');
     generateCheckButton('/texas_hold_em/user_post_river_check');
+
+    let postRiverRaise = new Bet(
+      'post_river',
+      allocatorContainer,
+      allocator,
+      allocatorValue,
+      oppCommitedChips.children[1].innerText -
+        userCommitedChips.children[1].innerText +
+        1,
+      userChipCount.children[1].innerText,
+      allocatorSubmitButton
+    );
+
+    postRiverRaise.revealUserBettingMechanism();
+    postRiverRaise.setMinBet();
+    postRiverRaise.setMaxBet();
+    postRiverRaise.setDefaultInputVal();
+    postRiverRaise.activateDisplay();
+    postRiverRaise.buttonOnClickFunctionality();
   }
 };

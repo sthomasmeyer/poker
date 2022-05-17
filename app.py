@@ -12,7 +12,7 @@ import math
 
 # Import Flask itself, from [flask], and import all of the Flask features...
 # (i.e., render_template, request) that you will be using in this application.
-from flask import Flask, jsonify, request, render_template, redirect, flash, session 
+from flask import Flask, jsonify, request, render_template, redirect, flash, session
 
 # Import Flask-CORS, an extension for handling Cross Origin Resource Sharing.
 from flask_cors import CORS
@@ -80,7 +80,7 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", new_secret_key)
 connect_db(app)
 
 # The [create_all()] command creates all tables from the given model class(es).
-db.create_all()
+# db.create_all()
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -561,7 +561,7 @@ def user_raise():
 
     if request.method == "POST":
         betting_round = request.json["round"]
-        print("The current betting-round is: " +request.json["round"])
+        print("The current betting-round is: " + request.json["round"])
 
         session[betting_round + "_raise_count"] += 1
         print(session[betting_round + "_raise_count"])
@@ -585,7 +585,7 @@ def user_raise():
                 user_commited_chips = 0
 
         raise_val = request.json["bet"]
-        print("The active-user bets: " +request.json["bet"])
+        print("The active-user bets: " + request.json["bet"])
 
         user_commited_chips += int(raise_val)
         print(f"Updated user chips commited: {user_commited_chips}")
@@ -593,25 +593,44 @@ def user_raise():
         adjusted_user_capital = math.trunc(int(user.capital) - int(raise_val))
         user.capital = json.dumps(adjusted_user_capital)
 
-        adjusted_total_chip_count = math.trunc(int(active_pot.total_chips) + int(raise_val))
+        adjusted_total_chip_count = math.trunc(
+            int(active_pot.total_chips) + int(raise_val)
+        )
         active_pot.total_chips = json.dumps(adjusted_total_chip_count)
 
         if betting_round == "pre_flop":
             active_pot.user_pre_flop = json.dumps(user_commited_chips)
             db.session.commit()
             return active_pot.user_pre_flop
+
         elif betting_round == "post_flop":
             active_pot.user_post_flop = json.dumps(user_commited_chips)
             db.session.commit()
-            return active_pot.user_post_flop
+            total_commited_chips = int(active_pot.user_pre_flop) + int(
+                active_pot.user_post_flop
+            )
+            return json.dumps(total_commited_chips)
+
         elif betting_round == "post_turn":
             active_pot.user_post_turn = json.dumps(user_commited_chips)
             db.session.commit()
-            return active_pot.user_post_turn
+            total_commited_chips = (
+                int(active_pot.user_pre_flop)
+                + int(active_pot.user_post_flop)
+                + int(active_pot.user_post_turn)
+            )
+            return json.dumps(total_commited_chips)
+
         elif betting_round == "post_river":
             active_pot.user_post_river = json.dumps(user_commited_chips)
             db.session.commit()
-            return active_pot.user_post_river
+            total_commited_chips = (
+                int(active_pot.user_pre_flop)
+                + int(active_pot.user_post_flop)
+                + int(active_pot.user_post_turn)
+                + int(active_pot.user_post_river)
+            )
+            return json.dumps(total_commited_chips)
 
 
 @app.route("/texas_hold_em/ai_pre_flop_decision", methods=["POST", "GET"])
@@ -677,48 +696,27 @@ def user_pre_flop_call():
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
-    # This [if]-statement ensures that the user-decision to call is reasonable.
-    if active_pot.user_pre_flop < active_pot.ai_pre_flop:
-        # Capture the current value of commited chips, both for the...
-        # active user and their ai-opponent. Convert them to integers.
-        user_commited_chips = int(active_pot.user_pre_flop)
-        ai_commited_chips = int(active_pot.ai_pre_flop)
+    # Capture the current value of commited chips, both for the...
+    # active user and their ai-opponent. Convert them to integers.
+    user_commited_chips = int(active_pot.user_pre_flop)
+    ai_commited_chips = int(active_pot.ai_pre_flop)
 
-        # Capture the difference between the ai-opp and user commited chips...
-        # (+) update the user's number commited to equal their ai-opponent's.
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
+    # Capture the difference between the ai-opp and user commited chips...
+    # (+) update the user's number commited to equal their ai-opponent's.
+    difference = ai_commited_chips - user_commited_chips
+    user_commited_chips += difference
 
-        # Deduct the chips commited by this user-decision to call...
-        # from their total chip stack.
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
+    # Deduct the chips commited by this user-decision to call...
+    # from their total chip stack.
+    adjusted_user_capital = int(user.capital) - difference
+    user.capital = json.dumps(adjusted_user_capital)
 
-        # Update [user-pre-flop] and [total_chips] values.
-        active_pot.user_pre_flop = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(user_commited_chips + ai_commited_chips)
-        db.session.commit()
+    # Update [user-pre-flop] and [total_chips] values.
+    active_pot.user_pre_flop = json.dumps(user_commited_chips)
+    active_pot.total_chips = json.dumps(user_commited_chips + ai_commited_chips)
+    db.session.commit()
 
-        return active_pot.user_pre_flop
-
-    ### REVISIT!!! This is an exception I built-in to fix an unusual error...
-    ## I'm not entirely sure what was causing the error, but I am entirely...
-    # sure that this is an effective solution (at least for the time being).
-    elif active_pot.user_pre_flop != active_pot.ai_pre_flop:
-        user_commited_chips = int(active_pot.user_pre_flop)
-        ai_commited_chips = int(active_pot.ai_pre_flop)
-
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
-
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
-
-        active_pot.user_pre_flop = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(user_commited_chips + ai_commited_chips)
-        db.session.commit()
-
-        return active_pot.user_pre_flop
+    return active_pot.user_pre_flop
 
 
 @app.route("/texas_hold_em/user_pre_flop_check", methods=["GET", "POST"])
@@ -819,11 +817,24 @@ def ai_post_flop_action():
     # [if]-statement. It is critical bc the [decide()] method of the...
     # [Action]-class will return zero, which is a falsey value in Python...
     # if the ai-opp decides to "check" / defer action.
-    if ai_final_decision or ai_final_decision == 0:
+    if ai_final_decision:
         active_pot.ai_post_flop = json.dumps(ai_final_decision)
         db.session.commit()
+        total_commited_chips = int(active_pot.ai_pre_flop) + int(
+            active_pot.ai_post_flop
+        )
 
-        return active_pot.ai_post_flop
+        return json.dumps(total_commited_chips)
+
+    elif ai_final_decision == 0:
+        active_pot.ai_post_flop = json.dumps(ai_final_decision)
+        db.session.commit()
+        total_commited_chips = int(active_pot.ai_pre_flop) + int(
+            active_pot.ai_post_flop
+        )
+
+        return json.dumps(total_commited_chips)
+
     # If the [decide()] method does *not* return zero, as in zero chips...
     # commited, or some other number (indicating a call or raise) then fold.
     else:
@@ -841,47 +852,33 @@ def user_post_flop_call():
     # Capture the number of chips commited by the active-user (+) the ai-opp...
     # If no chips have been commited, then temporarily assign these variables...
     # a value of zero.
-    if active_pot.ai_post_flop:
-        ai_commited_chips = int(active_pot.ai_post_flop)
-    else:
-        ai_commited_chips = 0
+    ai_commited_chips = int(active_pot.ai_post_flop)
 
     if active_pot.user_post_flop:
         user_commited_chips = int(active_pot.user_post_flop)
     else:
         user_commited_chips = 0
 
-    # This [if]-statement ensures that the user-decision to call is reasonable.
-    if user_commited_chips < ai_commited_chips:
-        # Capture the difference between the ai-opp and user commited chips...
-        # (+) update the user's number commited to equal their ai-opponent's.
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
+    # Capture the difference between the ai-opp and user commited chips...
+    # (+) update the user's number commited to equal their ai-opponent's.
+    difference = ai_commited_chips - user_commited_chips
+    user_commited_chips += difference
 
-        # Deduct the chips commited by this user-decision to call...
-        # from their total chip stack.
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
+    # Deduct the chips commited by this user-decision to call...
+    # from their total chip stack.
+    adjusted_user_capital = int(user.capital) - difference
+    user.capital = json.dumps(adjusted_user_capital)
 
-        # Update [user-pre-flop] and [total_chips] values.
-        active_pot.user_post_flop = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
-        db.session.commit()
+    # Update [user-post-flop] and [total_chips] values.
+    active_pot.user_post_flop = json.dumps(user_commited_chips)
+    active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+    db.session.commit()
 
-        return active_pot.user_post_flop
+    total_commited_chips = int(active_pot.user_pre_flop) + int(
+        active_pot.user_post_flop
+    )
 
-    elif user_commited_chips != ai_commited_chips:
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
-
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
-
-        active_pot.user_post_flop = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
-        db.session.commit()
-
-        return active_pot.user_post_flop
+    return json.dumps(total_commited_chips)
 
 
 @app.route("/texas_hold_em/user_post_flop_check", methods=["GET", "POST"])
@@ -933,6 +930,11 @@ def ai_post_turn_action():
         user_commited_chips = int(active_pot.user_post_turn)
     else:
         user_commited_chips = 0
+
+    ### Placeholder code to facilitate gameplay until the...
+    ## user-initiated 'check' system is operational.
+    if not active_pot.ai_post_flop: 
+        active_pot.ai_post_flop = json.dumps(0)
 
     # The total number of chips in the pot:
     pot_val = int(active_pot.total_chips)
@@ -991,11 +993,29 @@ def ai_post_turn_action():
     print(f"Post-turn TIER: {ai_action.tier}")
     ai_final_decision = ai_action.decide()
     print(f"AI-opp Post-turn Bet: {ai_final_decision}")
-    if ai_final_decision or ai_final_decision == 0:
+
+    if ai_final_decision:
         active_pot.ai_post_turn = json.dumps(ai_final_decision)
         db.session.commit()
+        total_commited_chips = (
+            int(active_pot.ai_pre_flop)
+            + int(active_pot.ai_post_flop)
+            + int(active_pot.ai_post_turn)
+        )
 
-        return active_pot.ai_post_turn
+        return json.dumps(total_commited_chips)
+
+    elif ai_final_decision == 0:
+        active_pot.ai_post_turn = json.dumps(ai_final_decision)
+        db.session.commit()
+        total_commited_chips = (
+            int(active_pot.ai_pre_flop)
+            + int(active_pot.ai_post_flop)
+            + int(active_pot.ai_post_turn)
+        )
+
+        return json.dumps(total_commited_chips)
+
     else:
         return json.dumps("xoxo")
 
@@ -1015,31 +1035,23 @@ def user_post_turn_call():
     else:
         user_commited_chips = 0
 
-    if user_commited_chips < ai_commited_chips:
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
+    difference = ai_commited_chips - user_commited_chips
+    user_commited_chips += difference
 
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
+    adjusted_user_capital = int(user.capital) - difference
+    user.capital = json.dumps(adjusted_user_capital)
 
-        active_pot.user_post_turn = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
-        db.session.commit()
+    active_pot.user_post_turn = json.dumps(user_commited_chips)
+    active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+    db.session.commit()
 
-        return active_pot.user_post_turn
+    total_commited_chips = (
+        int(active_pot.user_pre_flop)
+        + int(active_pot.user_post_flop)
+        + int(active_pot.user_post_turn)
+    )
 
-    elif user_commited_chips != ai_commited_chips:
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
-
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
-
-        active_pot.user_post_turn = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
-        db.session.commit()
-
-        return active_pot.user_post_turn
+    return json.dumps(total_commited_chips)
 
 
 @app.route("/texas_hold_em/user_post_turn_check", methods=["GET", "POST"])
@@ -1085,6 +1097,13 @@ def ai_post_river_action():
     else:
         user_commited_chips = 0
 
+    ### Placeholder code to facilitate gameplay until the...
+    ## user-initiated 'check' system is operational.
+    if not active_pot.ai_post_flop: 
+        active_pot.ai_post_flop = json.dumps(0)
+    if not active_pot.ai_post_turn:
+        active_pot.ai_post_turn = json.dumps(0)
+
     # The total number of chips in the pot:
     pot_val = int(active_pot.total_chips)
 
@@ -1112,7 +1131,7 @@ def ai_post_river_action():
     for card in json.loads(json_river):
         river.append(Card(card[1], card[0]))
 
-    # Combine the flop and the turn (+) rank these community cards.
+    # Combine the flop, turn, and river (+) rank these community cards.
     community_cards = flop + turn + river
     community_cards_rank = check_straight_flush(community_cards)
 
@@ -1144,11 +1163,31 @@ def ai_post_river_action():
     print(f"Post-river TIER: {ai_action.tier}")
     ai_final_decision = ai_action.decide()
     print(f"AI-opp Post-river Bet: {ai_final_decision}")
-    if ai_final_decision or ai_final_decision == 0:
+    
+    if ai_final_decision:
         active_pot.ai_post_river = json.dumps(ai_final_decision)
         db.session.commit()
+        total_commited_chips = (
+            int(active_pot.ai_pre_flop)
+            + int(active_pot.ai_post_flop)
+            + int(active_pot.ai_post_turn)
+            + int(active_pot.ai_post_river)
+        )
 
-        return active_pot.ai_post_river
+        return json.dumps(total_commited_chips)
+    
+    elif ai_final_decision == 0:
+        active_pot.ai_post_river = json.dumps(ai_final_decision)
+        db.session.commit()
+        total_commited_chips = (
+            int(active_pot.ai_pre_flop)
+            + int(active_pot.ai_post_flop)
+            + int(active_pot.ai_post_turn)
+            + int(active_pot.ai_post_river)
+        )
+
+        return json.dumps(total_commited_chips)
+
     else:
         return json.dumps("xoxo")
 
@@ -1168,31 +1207,24 @@ def user_post_river_call():
     else:
         user_commited_chips = 0
 
-    if user_commited_chips < ai_commited_chips:
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
+    difference = ai_commited_chips - user_commited_chips
+    user_commited_chips += difference
 
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
+    adjusted_user_capital = int(user.capital) - difference
+    user.capital = json.dumps(adjusted_user_capital)
 
-        active_pot.user_post_river = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
-        db.session.commit()
+    active_pot.user_post_river = json.dumps(user_commited_chips)
+    active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
+    db.session.commit()
 
-        return active_pot.user_post_river
+    total_commited_chips = (
+        int(active_pot.user_pre_flop)
+        + int(active_pot.user_post_flop)
+        + int(active_pot.user_post_turn)
+        + int(active_pot.user_post_river)
+    )
 
-    elif user_commited_chips != ai_commited_chips:
-        difference = ai_commited_chips - user_commited_chips
-        user_commited_chips += difference
-
-        adjusted_user_capital = int(user.capital) - difference
-        user.capital = json.dumps(adjusted_user_capital)
-
-        active_pot.user_post_river = json.dumps(user_commited_chips)
-        active_pot.total_chips = json.dumps(int(active_pot.total_chips) + difference)
-        db.session.commit()
-
-        return active_pot.user_post_river
+    return json.dumps(total_commited_chips)
 
 
 @app.route("/texas_hold_em/user_post_river_check", methods=["GET", "POST"])

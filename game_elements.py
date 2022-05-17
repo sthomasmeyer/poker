@@ -4,16 +4,19 @@ import random
 # Import Python's [json] module.
 import json
 
+# Import Flask's session feature that adds support for...
+# server-side session storage.
 from flask import session
 
+# Import SQLAlchemy (db) from the [models.py] file.
 from models import db
 
 # This file contains vital game elements, including...
-# PLAYERS that can: 1) hold cards, 2) check, 3) raise, 4) fold...
-# 5) call, and 6) accumulate chips. CARDS w/ suits + values that...
-# can be revealed. A DECK (of cards) that can be: 1) shuffled...
-# 2) dealt, or 3) "burned".
-
+# PLAYERS that can: hold cards and accumulate chips.
+# CARDS w/ suits + values that can be revealed.
+# A DECK (of cards) that can be: 1) shuffled, 2) dealt, or 3) "burned".
+# An ACTION class that can evaluate the strength of a given hand...
+# and make a decision to check / call, bet, or fold.
 
 class Player(object):
     def __init__(self, name, stack):
@@ -23,9 +26,6 @@ class Player(object):
         self.stack = stack
 
         self.pre_flop_bet = 0
-        self.post_flop_bet = 0
-        self.post_turn_bet = 0
-        self.post_river_bet = 0
 
         # Create a [hand_ranking] attribute that will allow players...
         # to compare the strength of their hand against opponents.
@@ -89,16 +89,6 @@ class Player(object):
             restructured_hand.append(item)
 
         return json.dumps(restructured_hand)
-
-    def blind(self, amount):
-        if self.dealer == False:
-            # If the player is *not* the dealer, then...
-            # they will pay the big blind.
-            pass
-        if self.dealer == True:
-            # If the player is the dealer, then they...
-            # will pay the small blind.
-            pass
 
     def show_hole_cards(self):
         for card in self.hole_cards:
@@ -352,6 +342,7 @@ class Action(object):
             session[self.betting_round + "_raise_count"] += 1
 
             self.ai_commited_chips += self.difference
+            self.ai_stack -= self.difference
             updated_pot_val = self.pot_val + self.difference
 
             self.ai_commited_chips += round(updated_pot_val / 2)

@@ -1,3 +1,4 @@
+# Import relevant classes from the [game_elements.py] file.
 from game_elements import Player, Deck, Card
 
 ### The following code is meant to establish [test] classes to play around with. ###
@@ -39,12 +40,6 @@ for player in players:
     player.incorporate_river(new_deck)
 
 print(f"river: {new_deck.river[0].value} of {new_deck.river[0].suit}")
-
-# print(
-#     f"Chamath's Post-river Hand: {player_one.jsonify_cards(player_one.post_river_hand)}"
-# )
-
-# print(f"Sack's Post-river Hand: {player_two.jsonify_cards(player_two.post_river_hand)}")
 
 ### END of the [test] classes code... COMMENCE hand-rankings ###
 
