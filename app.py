@@ -56,8 +56,13 @@ CORS(app)
 # which will connect this application to a local SQL database...
 # format --> "postgresql://[user:[password]@[host-name]:[port number]/database_name]"
 # It is important to do this *before* calling the [connect_db(app)] function.
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL", new_db_connection
+
+# app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+#     "DATABASE_URL", new_db_connection
+# )
+
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL").replace(
+    "://", "ql://", new_db_connection
 )
 
 # If Flask-SQLAlchemy's Track Modifications feature is set to [True]...
