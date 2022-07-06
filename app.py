@@ -45,7 +45,7 @@ importlib.reload(secrets)
 # new_secret_key = secrets.SUPER_SECRET_KEY
 # new_db_connection = secrets.LOCAL_SQL_DB
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="Templates", static_folder="Static")
 CORS(app)
 
 # Config(ure) the application's database URI...
