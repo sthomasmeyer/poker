@@ -42,8 +42,8 @@ from hand_rankings import (
 import secrets
 
 importlib.reload(secrets)
-new_secret_key = secrets.SUPER_SECRET_KEY
-new_db_connection = secrets.LOCAL_SQL_DB
+# new_secret_key = secrets.SUPER_SECRET_KEY
+# new_db_connection = secrets.LOCAL_SQL_DB
 
 app = Flask(__name__)
 CORS(app)
@@ -62,7 +62,7 @@ CORS(app)
 # )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL").replace(
-    "://", "ql://", new_db_connection
+    "://", "ql://"
 )
 
 # If Flask-SQLAlchemy's Track Modifications feature is set to [True]...
@@ -79,7 +79,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Use the [os.environ] command to access the environmental variables...
 # then, employ Python's [get()] method to capture the value associated...
 # w/ "SECRET_KEY". Note, a default value -- "secret" -- is set as well.
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", new_secret_key)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 # Call this function from [models.py] to connect the database we've selected.
 connect_db(app)
@@ -938,7 +938,7 @@ def ai_post_turn_action():
 
     ### Placeholder code to facilitate gameplay until the...
     ## user-initiated 'check' system is operational.
-    if not active_pot.ai_post_flop: 
+    if not active_pot.ai_post_flop:
         active_pot.ai_post_flop = json.dumps(0)
 
     # The total number of chips in the pot:
@@ -1104,7 +1104,7 @@ def ai_post_river_action():
 
     ### Placeholder code to facilitate gameplay until the...
     ## user-initiated 'check' system is operational.
-    if not active_pot.ai_post_flop: 
+    if not active_pot.ai_post_flop:
         active_pot.ai_post_flop = json.dumps(0)
     if not active_pot.ai_post_turn:
         active_pot.ai_post_turn = json.dumps(0)
@@ -1168,7 +1168,7 @@ def ai_post_river_action():
     print(f"Post-river TIER: {ai_action.tier}")
     ai_final_decision = ai_action.decide()
     print(f"AI-opp Post-river Bet: {ai_final_decision}")
-    
+
     if ai_final_decision:
         active_pot.ai_post_river = json.dumps(ai_final_decision)
         db.session.commit()
@@ -1180,7 +1180,7 @@ def ai_post_river_action():
         )
 
         return json.dumps(total_commited_chips)
-    
+
     elif ai_final_decision == 0:
         active_pot.ai_post_river = json.dumps(ai_final_decision)
         db.session.commit()
