@@ -15,7 +15,29 @@ button:hover {
   margin: 10px;
   padding: 5px;
   padding-right: 27px;
-  font-size: 10px;
+  font-size: 11px;
   width: fit-content;
-  border: 2px solid lightskyblue;
+  border: 2px solid black;
+  border-radius: 1rem 0 0 1rem;
 }
+
+#password-instructions,
+p {
+  font-weight: bolder;
+}
+
+#password-instructions,
+li {
+  font-weight: lighter;
+}
+
+#intro {
+  background-size: cover;
+  height: 100vh;
+}
+
+@media (min-width: 992px) {
+  #intro {
+    margin-top: -58.59px;
+  }
+} 

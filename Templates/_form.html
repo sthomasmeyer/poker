@@ -2,9 +2,9 @@
 
 {% for field in form if field.widget.input_type != 'hidden'%}
 
-<div>
-  {{ field.label }}
-  {{ field(class="form-input-row") }}
+<div class="form-outline mb-4">
+  <label class="form-label" for="form2Example17">{{ field.label }}</label>
+  {{ field(class="form-control form-control-lg") }}
 </div>
 
 {% endfor %}

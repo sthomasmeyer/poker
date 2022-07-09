@@ -41,7 +41,7 @@ from hand_rankings import (
 # Import sensitive information from the [secrets.py] file.
 import secrets
 
-importlib.reload(secrets)
+# importlib.reload(secrets)
 # new_secret_key = secrets.SUPER_SECRET_KEY
 # new_db_connection = secrets.LOCAL_SQL_DB
 
@@ -79,6 +79,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Use the [os.environ] command to access the environmental variables...
 # then, employ Python's [get()] method to capture the value associated...
 # w/ "SECRET_KEY". Note, a default value -- "secret" -- is set as well.
+
+# app.config["SECRET_KEY"] = new_secret_key
+
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 # Call this function from [models.py] to connect the database we've selected.
