@@ -1,5 +1,10 @@
 body {
-  background-color: ghostwhite;
+  background: url("https://images.unsplash.com/photo-1518514854541-fe58ae2a5ef1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80") no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  height: 100vh;
   font-family: 'Noto Sans', sans-serif;
 }
 
@@ -7,9 +12,11 @@ button:hover {
   cursor: pointer;
 }
 
-#player {
-  margin: 10px;
+.flash-messages {
+  color: ghostwhite;
 }
+
+/* BEGIN CSS for password instructions */
 
 #password-instructions {
   margin: 10px;
@@ -31,7 +38,384 @@ li {
   font-weight: lighter;
 }
 
-#intro {
+/* END CSS for password instructions */
+
+/* BEGIN CSS for welcome page */
+
+#welcome-container {
+  background: url("https://images.unsplash.com/photo-1518514854541-fe58ae2a5ef1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80") no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
   background-size: cover;
   height: 100vh;
 }
+
+#welcome-elements {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#welcome-elements h1 {
+  color: ghostwhite;
+  font-variant:small-caps;
+  font-size: 4em;
+  white-space: nowrap;
+  margin-bottom: 3%;
+}
+
+#welcome-elements button {
+  background-color: transparent;
+  border: 3px solid ghostwhite;
+  color: ghostwhite;
+  font-size: 2em;
+  white-space: nowrap;
+  margin-left: 33%;
+  margin-right: 33%;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+#welcome-elements button:hover {
+  background-color: black;
+  box-shadow: -4px 6px ghostwhite;
+}
+
+/* END CSS for welcome page */
+
+/* BEGIN texas hold'em-related CSS. */
+
+#th {
+  /* background-color: seashell; */
+  background: url("https://images.unsplash.com/photo-1518514854541-fe58ae2a5ef1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80") no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  height: 100vh;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+#th td {
+  display: inline-grid;
+}
+
+#th-banner {
+  color: ghostwhite;
+  margin: auto;
+  width: 50%;
+  padding: 10px;
+  text-align: center;
+}
+
+.th-player-info {
+  background-color: lightskyblue;
+  outline: 7.14px solid ghostwhite;
+  margin-left: auto;
+  margin-right: auto;
+  width: 66.6%;
+}
+
+/* BEGIN active user sub-section */
+
+#th-user #active-user {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#th-user #username {
+  color: ghostwhite;
+  text-align: center;
+  font-size: 2em;
+  font-variant-caps:all-small-caps;
+  margin: 1%;
+  font-weight: bold;
+}
+
+#th-user #user-chip-count td {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: bolder;
+}
+
+#th-user #user-hand td {
+  background-color: lightcoral;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-variant: small-caps;
+  font-weight: bolder;
+}
+
+#th-user #user-commited td {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-variant: small-caps;
+  font-weight: bolder;
+}
+
+#th-user #user-score td {
+  background-color: #343a40;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: bolder;
+}
+
+#user-options #th-user-fold {
+  padding: 5px;
+  margin: 5px;
+}
+
+#user-options #th-user-fold #fold-btn {
+  background-color: ghostwhite;
+}
+
+#user-options #th-user-fold #fold-btn:hover {
+  background-color: #343a40;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#user-options #allocator-container {
+  padding: 5px;
+  margin: 5px;
+}
+
+#user-options #allocator-container #allocator-submit-btn {
+  background-color: ghostwhite;
+}
+
+#user-options #allocator-container #allocator-submit-btn:hover {
+  background-color: lightcoral;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#user-options #call-btn {
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#user-options #call-btn:hover {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#user-options #check-btn {
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#user-options #check-btn:hover {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#reveal-flop-btn {
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#reveal-flop-btn:hover {
+  background-color: lightcoral;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#reveal-turn-btn {
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#reveal-turn-btn:hover {
+  background-color: lightcoral;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#reveal-river-btn {
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#reveal-river-btn:hover {
+  background-color: lightcoral;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#showdown-btn {
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#showdown-btn:hover {
+  background-color: #343a40;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+#next-hand-btn { 
+  background-color: ghostwhite;
+  padding: 5px;
+  margin: 5px;
+}
+
+#next-hand-btn:hover {
+  background-color: lightcoral;
+  color: ghostwhite;
+  font-weight: bolder;
+  border: 2px solid ghostwhite;
+}
+
+/* END active user sub-section */
+
+/* BEGIN opp sub-section */
+
+#th-opp #ai-opp {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#th-opp #ai-opp-name {
+  color: ghostwhite;
+  text-align: center;
+  font-size: 2em;
+  font-variant-caps:all-small-caps;
+  margin: 1%;
+  font-weight: bold;
+}
+
+#th-opp #ai-opp-chip-count td {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: bolder;  
+}
+
+#th-opp #ai-opp-hand td {
+  background-color: lightcoral;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-variant: small-caps;
+  font-weight: bolder;
+}
+
+#th-opp #ai-opp-commited td {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-variant: small-caps;
+  font-weight: bolder;  
+}
+
+#th-opp #ai-opp-score td {
+  background-color: #343a40;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: bolder;
+}
+
+/* END opp sub-section */
+
+/* BEGIN texas hold'em board sub-section */
+
+#th-board {
+  background-color: #343a40;
+  color: ghostwhite;
+  outline: 7.14px solid ghostwhite;
+  margin-left: auto;
+  margin-right: auto;
+  width: 33.3%;
+}
+
+#th-board #board {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#th-board #board-brand {
+  color: ghostwhite;
+  text-align: left;
+  font-size: .75em;
+  font-variant-caps:all-small-caps;
+  margin: 1%;
+  font-weight: bold; 
+}
+
+#th-board #community-cards td {
+  background-color: lightcoral;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-variant: small-caps;
+  font-weight: bolder; 
+}
+
+#th-board #pot td {
+  background-color: lightseagreen;
+  color: ghostwhite;
+  border: 2px solid ghostwhite;
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-variant: small-caps;
+  font-weight: bolder;
+}
+
+/* END texas hold'em board sub-section */

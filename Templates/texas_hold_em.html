@@ -7,84 +7,122 @@ that is meant to be manipulated by its "children", we must first write... -->
 {% block content %}
 <!-- Then, we can fill this [block] w/ anything our heart desires. -->
 
-  <h1>Texas Hold'em</h1>
-  <p>You are playing heads-up against a computer opponent. Good luck!</p>
+<div id="th">
 
-  <table id="active-user">
-    <tr>
-      <th id="user-name">{{ players[0].name }}{% if players[0].dealer %} (dealer) {% endif %}</th>
-    </tr>
-    <tr id="user-chip-count">
-      <th>Chip Count: </th>
-        <td id="user-initial-stack">{{ players[0].stack }}</td>
-    </tr>
-    <tr>
-      <th>Hand: </th>
-        <td>{% for card in players[0].hole_cards %} {{ card.reveal() }} {% endfor %}</td>
-    </tr>
-    <tr id="user-commited">
-      <th>Commited Chips: </th>
-        <td id="user-blind">{{ players[0].pre_flop_bet }}</td>
-    </tr>
-    <tr id="user-score">
-      <th>Score: </th>
-    </tr>
-    <tr id="user-options">
-      <th>Action: </th>
+  <div id="th-banner">
+    <h1>Texas Hold'em</h1>
+    <p>You are playing heads-up against a computer opponent. Good luck!</p>
+  </div>
 
-        <!-- In a game of Texas Hold'em, users always have the option...
-        to fold, whether or not it makes sense to do so. -->
-        <td><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
+  <div id="th-table">
 
-        <td hidden id="allocator-container">
-          <form id="allocator-form" action="/texas_hold_em/user_raise">
-            <input id="allocator" type="range" name="bet-val">
-            <label id="allocator-val" name="bet-allocator"></label>
-            <button id="allocator-submit-btn">Raise</button>
-          </form>
-        </td>
+    <div id="th-user" class="th-player-info">
+      <table id="active-user">
 
-        <!-- The following three buttons are vital bc they each trigger...
-        key events in a given hand of Texas Hold'em. Their state is "hidden"...
-        by default, and they will be revealed to users when appropriate. -->
-        <td><button hidden id="reveal-flop-btn">Reveal Flop</button></td>
-        <td><button hidden id="reveal-turn-btn">Reveal Turn</button></td>
-        <td><button hidden id="reveal-river-btn">Reveal River</button></td>
+        <div id="username">{{ players[0].name }}{% if players[0].dealer %} (dealer) {% endif %}</div>
 
-      </tr>
-  </table>
-  <br>
-  <table id="board">
-    <tr id="community-cards">
-      <th>Community Cards: </th>
-    </tr>
-    <tr id="pot">
-      <th>Pot: </th>
-        <td id="sum-of-blinds">{{ players[0].pre_flop_bet + players[1].pre_flop_bet }}</td>
-    </tr>
-  </table>
-  <br>
-  <table id="ai-opp">
-    <tr>
-      <th id="ai-opp-name">{{ players[1].name }}{% if players[1].dealer %} (dealer) {% endif %}</th>
-    </tr>
-    <tr id="ai-opp-chip-count">
-      <th>Chip Count: </th>
-        <td id="ai-opp-initial-stack">{{ players[1].stack }}</td>
-    </tr>
-    <tr id="ai-opp-hand">
-      <th>Hand: </th>
-    </tr>
-    <tr id="ai-opp-commited">
-      <th>Commited Chips: </th>
-        <td id="ai-opp-blind">{{ players[1].pre_flop_bet }}</td>
-    </tr>
-    <tr id="ai-opp-score">
-      <th>Score: </th>
-    </tr>
-  </table>
+        <tr id="user-chip-count">
+          <th>Chip Count: </th>
+            <td id="user-initial-stack">{{ players[0].stack }}</td>
+        </tr>
 
-  <script src="https://unpkg.com/jquery"></script>
-  <script src="https://unpkg.com/axios/dist/axios.js"></script>
-  <script src="/Static/texasHoldEm.js"></script>
+        <tr id="user-hand">
+          <th>Hand: </th>
+            <td>{% for card in players[0].hole_cards %} {{ card.reveal() }} {% endfor %}</td>
+        </tr>
+
+        <tr id="user-commited">
+          <th>Commited Chips: </th>
+            <td id="user-blind">{{ players[0].pre_flop_bet }}</td>
+        </tr>
+
+        <tr id="user-score">
+          <th>Score: </th>
+        </tr>
+
+        <tr id="user-options">
+          <th>Action: </th>
+
+            <div class="th-user-action">
+              <!-- In a game of Texas Hold'em, users always have the option...
+              to fold, whether or not it makes sense to do so. -->
+              <td id="th-user-fold"><form action="/texas_hold_em/user_fold/{{ user.id }}"><button id="fold-btn">Fold</button></form></td>
+            </div>
+
+            <div id="th-user-bet" class="th-user-action">
+              <td hidden id="allocator-container">
+                <form id="allocator-form" action="/texas_hold_em/user_raise">
+                  <input id="allocator" type="range" name="bet-val">
+                  <label id="allocator-val" name="bet-allocator"></label>
+                  <button id="allocator-submit-btn">Raise</button>
+                </form>
+              </td>
+            </div>
+
+            <div id="th-user-reveal" class="th-user-action">
+              <!-- The following three buttons are vital bc they each trigger...
+              key events in a given hand of Texas Hold'em. Their state is "hidden"...
+              by default, and they will be revealed to users when appropriate. -->
+              <td><button hidden id="reveal-flop-btn">Reveal Flop</button></td>
+              <td><button hidden id="reveal-turn-btn">Reveal Turn</button></td>
+              <td><button hidden id="reveal-river-btn">Reveal River</button></td>
+            </div>
+
+          </tr>
+
+      </table>
+    </div>
+
+    <br>
+
+    <div id="th-board">
+      <table id="board">
+
+        <div id="board-brand">POK3R NIGHTS</div>
+
+        <tr id="community-cards">
+          <th>Community Cards: </th>
+        </tr>
+
+        <tr id="pot">
+          <th>Pot: </th>
+            <td id="sum-of-blinds">{{ players[0].pre_flop_bet + players[1].pre_flop_bet }}</td>
+        </tr>
+
+      </table>
+    </div>
+
+    <br>
+
+    <div id="th-opp" class="th-player-info">
+      <table id="ai-opp">
+
+        <div id="ai-opp-name">{{ players[1].name }}{% if players[1].dealer %} (dealer) {% endif %}</div>
+
+        <tr id="ai-opp-chip-count">
+          <th>Chip Count: </th>
+            <td id="ai-opp-initial-stack">{{ players[1].stack }}</td>
+        </tr>
+
+        <tr id="ai-opp-hand">
+          <th>Hand: </th>
+        </tr>
+
+        <tr id="ai-opp-commited">
+          <th>Commited Chips: </th>
+            <td id="ai-opp-blind">{{ players[1].pre_flop_bet }}</td>
+        </tr>
+
+        <tr id="ai-opp-score">
+          <th>Score: </th>
+        </tr>
+
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/jquery"></script>
+<script src="https://unpkg.com/axios/dist/axios.js"></script>
+<script src="/Static/texasHoldEm.js"></script>
 {%endblock%}

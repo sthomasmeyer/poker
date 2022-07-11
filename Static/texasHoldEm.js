@@ -121,7 +121,29 @@ async function getScore(path, anchor) {
   try {
     const res = await axios.get(path);
     displayScore = document.createElement('td');
-    displayScore.innerText = res.data;
+
+    if (res.data === 135) {
+      displayScore.innerText = `ROYAL FLUSH --> ${res.data} points`;
+    } else if (res.data < 135 && res.data > 120) {
+      displayScore.innerText = `STRAIGHT FLUSH --> ${res.data} points`;
+    } else if (res.data < 120 && res.data > 105) {
+      displayScore.innderText = `QUADS --> ${res.data} points`;
+    } else if (res.data < 105 && res.data > 90) {
+      displayScore.innerText = `FULL HOUSE --> ${res.data} points`;
+    } else if (res.data < 90 && res.data > 75) {
+      displayScore.innderText = `FLUSH --> ${res.data} points`;
+    } else if (res.data < 75 && res.data > 60) {
+      displayScore.innerText = `STRAIGHT --> ${res.data} points`;
+    } else if (res.data < 60 && res.data > 45) {
+      displayScore.innerText = `THREE-OF-A-KIND --> ${res.data} points`;
+    } else if (res.data < 45 && res.data > 30) {
+      displayScore.innerText = `TWO-PAIR --> ${res.data} points`;
+    } else if (res.data < 30 && res.data > 15) {
+      displayScore.innerText = `PAIR --> ${res.data} points`;
+    } else if (res.data < 15) {
+      displayScore.innerText = `HIGH-CARD --> ${res.data} points`;
+    }
+
     anchor.append(displayScore);
   } catch (error) {
     console.log(error);
@@ -232,22 +254,33 @@ function generateShowdownButton() {
 
   let showdownButton = document.createElement('button');
   showdownButton.innerText = 'Showdown';
+  showdownButton.setAttribute('id', 'showdown-btn');
+
   showdownButton.onclick = function showdown(evt) {
     evt.preventDefault();
-    setTimeout(() => {
-      showdownForm.submit();
-    }, 1000);
     showdownButton.remove();
 
+    // Execute the following functions to reveal...
+    // the opp's cards, their score, and the user's score.
     getOppCards();
     getScore('/texas_hold_em/user_score', userScore);
     getScore('/texas_hold_em/computer_opp_score', oppScore);
 
-    setTimeout(() => {
-      alert(`
-      Press 'OK' to see the next hand
-      `);
-    }, 500);
+    let nextHandButton = document.createElement('button');
+    nextHandButton.innerText = 'Deal the Next Hand';
+    nextHandButton.setAttribute('id', 'next-hand-btn');
+
+    // Append the [nextHandButton] to [userOptions].
+    userOptions.append(nextHandButton);
+
+    // The [nextHandButton] 'onClick' function should...
+    // submit the [showdownForm].
+    nextHandButton.onclick = function dealNext(evt) {
+      // Remove this button.
+      nextHandButton.remove();
+      // Submit the form.
+      showdownForm.submit();
+    };
   };
 
   showdownForm.append(showdownButton);
@@ -621,7 +654,7 @@ revealFlopButton.onclick = function revealFlop(evt) {
 
   // If the active-user is the dealer, then the ai-opp...
   // will be the first to act after the flop is revealed.
-  if (document.getElementById('user-name').innerText.includes('dealer')) {
+  if (document.getElementById('username').innerText.includes('dealer')) {
     console.log('The action is on Cortana.');
 
     // This asynchronous function makes a GET request...
@@ -755,7 +788,7 @@ revealTurnButton.onclick = function revealTurn(evt) {
     }
   }
 
-  if (document.getElementById('user-name').innerText.includes('dealer')) {
+  if (document.getElementById('username').innerText.includes('dealer')) {
     console.log('The action is on Cortana.');
 
     async function cortanaPostTurnDecision() {
@@ -879,7 +912,7 @@ revealRiverButton.onclick = function revealRiver(evt) {
     }
   }
 
-  if (document.getElementById('user-name').innerText.includes('dealer')) {
+  if (document.getElementById('username').innerText.includes('dealer')) {
     console.log('The action is on Cortana.');
 
     async function cortanaPostRiverDecision() {

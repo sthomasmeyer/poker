@@ -18,6 +18,7 @@ from models import db
 # An ACTION class that can evaluate the strength of a given hand...
 # and make a decision to check / call, bet, or fold.
 
+
 class Player(object):
     def __init__(self, name, stack):
         self.name = name
@@ -244,10 +245,7 @@ class Action(object):
 
         # Apply the appropriate [tier]-identifier to hands in the...
         # post-flop betting round.
-        if (
-            self.hand_rank <= 13.10
-            and self.betting_round == "post_flop"
-        ):
+        if self.hand_rank <= 13.10 and self.betting_round == "post_flop":
             self.tier = "five"
         elif (
             self.hand_rank > 13.10
@@ -267,18 +265,12 @@ class Action(object):
             and self.betting_round == "post_flop"
         ):
             self.tier = "two"
-        elif (
-            self.hand_rank > 47
-            and self.betting_round == "post_flop"
-        ):
+        elif self.hand_rank > 47 and self.betting_round == "post_flop":
             self.tier = "one"
 
         # Apply the appropriate [tier]-identifier to hands in the...
         # post-turn betting round.
-        if (
-            self.hand_rank <= 13.10
-            and self.betting_round == "post_turn"
-        ):
+        if self.hand_rank <= 13.10 and self.betting_round == "post_turn":
             self.tier = "five"
         elif (
             self.hand_rank > 13.10
@@ -298,10 +290,7 @@ class Action(object):
             and self.betting_round == "post_turn"
         ):
             self.tier = "two"
-        elif (
-            self.hand_rank > 47
-            and self.betting_round == "post_turn"
-        ):
+        elif self.hand_rank > 47 and self.betting_round == "post_turn":
             self.tier = "one"
 
         # Apply the appropriate [tier]-identifier to hands in the...
@@ -329,6 +318,12 @@ class Action(object):
         elif self.hand_rank > 47 and self.betting_round == "post_river":
             self.tier = "one"
 
+    # IMPORTANT --> The ai-opp will currently bet chips that it...
+    # doesn't have. Stop it from doing this by programming it to check...
+    # the value of its 'stack' before placing a bet. If the value of...
+    # the bet it is attempting to place *exceeds* the value of its stack...
+    # then limit its bet.
+
     def bet(self):
         # If there has already been one bet and three raises...
         # then betting again is not an option; default to [call].
@@ -340,6 +335,24 @@ class Action(object):
         ):
             self.raise_count += 1
             session[self.betting_round + "_raise_count"] += 1
+
+            # WARNING --> Before placing this bet, ensure that the value...
+            # of the ai-opp's stack is *greater than* the value of the...
+            # difference. Otherwise, the ai-opp cannot bet.
+
+            # If the following statement is true, then the ai-opp will...
+            # go all-in to call the user's bet.
+            if self.difference == self.ai_stack:
+                self.ai_commited_chips += self.difference
+                self.ai_stack -= self.difference
+                self.pot_val += self.difference
+
+                session["ai_stack"] = self.ai_stack
+
+                self.active_pot.total_chips = json.dumps(self.pot_val)
+                db.session.commit()
+
+                return self.ai_commited_chips
 
             self.ai_commited_chips += self.difference
             self.ai_stack -= self.difference
