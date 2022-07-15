@@ -12,7 +12,7 @@ import math
 
 # Import Flask itself, from [flask], and import all of the Flask features...
 # (i.e., render_template, request) that you will be using in this application.
-from flask import Flask, jsonify, request, render_template, redirect, flash, session
+from flask import Flask, request, render_template, redirect, flash, session
 
 # Import Flask-CORS, an extension for handling Cross Origin Resource Sharing.
 from flask_cors import CORS
@@ -30,7 +30,7 @@ from forms import (
 # Import the classes you've created from the [game_elements.py] file.
 from game_elements import Player, Deck, Card, Action
 
-# Import the classes you've created from the [hand_rankings.py] file.
+# Import the functions you've created from the [hand_rankings.py] file.
 from hand_rankings import (
     check_straight_flush,
     check_pair,
@@ -41,29 +41,48 @@ from hand_rankings import (
 # Import sensitive information from the [secrets.py] file.
 import secrets
 
-# importlib.reload(secrets)
-# new_secret_key = secrets.SUPER_SECRET_KEY
-# new_db_connection = secrets.LOCAL_SQL_DB
+importlib.reload(secrets)
+new_secret_key = secrets.SUPER_SECRET_KEY
+dev_db_connection = secrets.DEVELOPMENT_DB
+test_db_connection = secrets.TEST_DB
 
 app = Flask(__name__, template_folder="Templates", static_folder="Static")
 CORS(app)
 
-# Config(ure) the application's database URI...
+# Config(ure) the application's database URI and secret key...
 # Use the [os.environ] command to access the environmental variables...
-# then, employ Python's [get()] method to capture the value associated...
-# w/ "DATABASE_URL".
-# Note, in this instance a default is provided...
-# which will connect this application to a local SQL database...
-# format --> "postgresql://[user:[password]@[host-name]:[port number]/database_name]"
+# then, employ Python's [get()] method to capture the values associated...
+# w/ "DATABASE_URL" and "SECRET_KEY".
+# Note, default values are provided in both dev and testing environments...
+# which will connect this application to a local PostgreSQL database...
 # It is important to do this *before* calling the [connect_db(app)] function.
 
-# app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-#     "DATABASE_URL", new_db_connection
-# )
+if (os.environ.get("FLASK_ENV") == "development"):
+    print(f"This app is deployed in a {os.environ.get('FLASK_ENV')} environment.")
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL").replace(
-    "://", "ql://"
-)
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+        "DATABASE_URL", dev_db_connection
+    )
+
+    app.config["SECRET_KEY"] = new_secret_key
+
+elif (os.environ.get("FLASK_ENV") == "testing"):
+    print(f"This app is deployed in a {os.environ.get('FLASK_ENV')} environment.")
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+        "DATABASE_URL", test_db_connection
+    )
+
+    app.config["SECRET_KEY"] = new_secret_key
+
+else: 
+    print("This app is deployed on a Heroku server.")
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL").replace(
+        "://", "ql://"
+    )
+
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 # If Flask-SQLAlchemy's Track Modifications feature is set to [True]...
 # then it will track modifications of objects and emit signals...
@@ -74,15 +93,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # statements + [repr()] of their parameter lists to...
 # the default log handler, typically [sys.stdout] for output.
 # app.config["SQLALCHEMY_ECHO"] = True
-
-# Config(ure) the application's "SECRET_KEY"...
-# Use the [os.environ] command to access the environmental variables...
-# then, employ Python's [get()] method to capture the value associated...
-# w/ "SECRET_KEY". Note, a default value -- "secret" -- is set as well.
-
-# app.config["SECRET_KEY"] = new_secret_key
-
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 # Call this function from [models.py] to connect the database we've selected.
 connect_db(app)
@@ -96,6 +106,9 @@ def home():
     """Display a landing page [base.html], where users will log in or create a new account."""
 
     form = UserLoginForm()
+
+    ### CRITICAL ERROR --> if a user inputs an incorrect username and / or password...
+    # direct them to the create account page. 
 
     if form.validate_on_submit():
         # Create a [data] dictionary object. The value of each key [k] is established...
@@ -117,6 +130,10 @@ def home():
         candidate = User(**data)
 
         existing_user = User.query.filter_by(username=candidate.username).first()
+
+        if (not existing_user):
+            flash("There is no account associated with that username.")
+            return redirect("/")
 
         if (
             existing_user.username == candidate.username
@@ -142,6 +159,14 @@ def home():
             db.session.commit()
 
             return redirect(f"/user/{user_id}")
+
+        elif (
+            existing_user.username == candidate.username
+            and bcrypt.check_password_hash(existing_user.password, candidate.password)
+            == False
+        ):
+            flash("Incorrect password.")
+            return redirect("/")
 
     return render_template("base.html", form=form)
 

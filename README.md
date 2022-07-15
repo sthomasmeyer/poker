@@ -1,6 +1,10 @@
 # POK3R NIGHTS
 
-This application is designed to introduce users to the game of poker. It is an invaluable guide to both traditional and non-traditional variants: texas hold'em, pineapple, omaha hi-lo, seven card stud, midnight baseball, and criss cross. Follow [this link](https://pok3r-nights.herokuapp.com/) to check out the live beta version.
+This application is designed to introduce users to the game of poker. It is an invaluable guide to both traditional and non-traditional variants: texas hold'em, pineapple, omaha hi-lo, seven card stud, midnight baseball, and criss cross.
+
+## Link to Live Demo
+
+[POK3R NIGHTS BETA](https://pok3r-nights.herokuapp.com/)
 
 ## A One-paragraph History of Poker
 
@@ -10,14 +14,14 @@ In 1829, a group of degenerate French settlers brought the game of poker to New 
 
 This useful graphic from 888poker depicts 10 poker hands ranked from best (Royal Flush) to worst (High Card):
 
-![](2022-07-12-11-08-40.png)
+![](./Static/Images/2022-07-12-11-08-40.png)
 
-The following rules apply to **texas hold'em**, the most popular version of poker and the perfect place to start if you are a beginner. 
+The following rules apply to **texas hold'em**, the most popular version of poker and the perfect place to start if you are a beginner.
 
 * **Objective**: make the best possible five card hand using any combination of the two cards in your hand plus the five community cards.
 * **Set-up**: each player is dealt two cards, face down.
   * The player sitting directly to the left of the dealer must place a small blind bet, and the player sitting directly to their left must place a big blind bet.
-* **First Round of Betting**: The player sitting directly to the left of the big blind has the opportunity to play first. They can either fold, call, or raise. Every other player will have the same three options. For each round of betting there is a maximum of one bet and three raises allowed. 
+* **First Round of Betting**: The player sitting directly to the left of the big blind has the opportunity to play first. They can either fold, call, or raise. Every other player will have the same three options. For each round of betting there is a maximum of one bet and three raises allowed.
 * **The Flop**: After the first round of betting, the dealer will burn one card, and then place the next three face-up in the middle of the table. These are the first three community cards.
 * **Second Round of Betting**: After the flop, the player sitting directly to the left of the dealer will have the opportunity to play first. They can either check, raise, or fold. Then, the other players who are still engaged in the hand will have an opportunity to check, call, raise, or fold. Remember, for each round of betting there is a maximum of one bet and three raises allowed.
 * **The Turn**: After the second round of betting, the dealer will burn one card, and then place the next card face-up in the middle of the table. This is the fourth community card.
@@ -30,24 +34,24 @@ The following rules apply to **texas hold'em**, the most popular version of poke
 
 ### User Login Form
 
-![](2022-07-12-10-45-06.png)
+![](./Static/Images/2022-07-12-10-45-06.png)
 
 Users login with their unique username and password.
 
 ### Create a New Account
 
-![](2022-07-12-10-45-35.png)
+![](./Static/Images/2022-07-12-10-45-35.png)
 
 New users can create an account with a unique username and email address. Note, all passwords are hashed *before* being stored in the database.
 
 ### Successful Login Landing Page
 
-![](2022-07-12-10-44-26.png)
+![](./Static/Images/2022-07-12-10-44-26.png)
 
 After a successful login, users are directed to this landing page.
 
 ### Texas Hold'em Gameplay
 
-![](2022-07-12-10-46-00.png)
+![](./Static/Images/2022-07-12-10-46-00.png)
 
 During gameplay all relevant information -- chip count, hole cards, community cards, pot, etc. -- is clearly displayed. Users have the option to check, raise, call, or fold (when appropriate).

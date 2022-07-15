@@ -1,7 +1,7 @@
 # Import relevant classes from the [game_elements.py] file.
-from game_elements import Player, Deck, Card
+from game_elements import Player, Deck
 
-### The following code is meant to establish [test] classes to play around with. ###
+### The following code establishes informal [test] classes. ###
 
 players = []
 player_one = Player("Chamath", 1000000000)
@@ -525,7 +525,12 @@ def check_pair(hand):
         else:
             print(f"Community Cards: {card_list}")
             # MAX score = 14.XYZ
-            score = (card_list[0] + card_list[1] / 100 + card_list[2] / 1000 + card_list[3] / 10000)
+            score = (
+                card_list[0]
+                + card_list[1] / 100
+                + card_list[2] / 1000
+                + card_list[3] / 10000
+            )
             return score
 
     ### This marks the end of the flop / turn evaluation code. ###
@@ -572,7 +577,7 @@ def check_pair(hand):
 
 ### END of the hand-rankings code. ###
 
-### The following code is meant for informal testing of the hand-ranking system. ###
+### The following code is designed for informal testing of the hand-ranking system. ###
 
 for player in players:
     player.hand_ranking = check_straight_flush(player.post_river_hand)
