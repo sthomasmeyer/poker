@@ -38,13 +38,14 @@ from hand_rankings import (
     check_four_of_a_kind,
 )
 
-# Import sensitive information from the [secrets.py] file.
-import secrets
+if (os.environ.get("FLASK_ENV") == "development" or os.environ.get("FLASK_ENV") == "testing"):
+    # Import sensitive information from the [secrets.py] file.
+    import secrets
 
-importlib.reload(secrets)
-new_secret_key = secrets.SUPER_SECRET_KEY
-dev_db_connection = secrets.DEVELOPMENT_DB
-test_db_connection = secrets.TEST_DB
+    importlib.reload(secrets)
+    new_secret_key = secrets.SUPER_SECRET_KEY
+    dev_db_connection = secrets.DEVELOPMENT_DB
+    test_db_connection = secrets.TEST_DB
 
 app = Flask(__name__, template_folder="Templates", static_folder="Static")
 CORS(app)
