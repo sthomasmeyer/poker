@@ -1,0 +1,23 @@
+<!-- The following line of code ensures that this HTML template is...
+a "child" of the "base" template we've created. -->
+{% extends 'base.html' %}
+
+<!-- In order to alter the pre-defined [block] of the "base" HTML template...
+that is meant to be manipulated by its "children", we must first write... -->
+{% block content %}
+<!-- Then, we can fill this [block] w/ anything our heart desires. -->
+
+  <div id="chip-reload-container">
+    <div id="chip-reload-elements">
+
+      <h1 id="chip-reload-message">Did you run out of chips anon?</h1>
+      <button id="chip-reload-btn">watch a five-second ad to earn more</button>
+      <video id="chip-reload-advert" src="../Static/Advertisements/Rick Astley - Never Gonna Give You Up (Official Music Video).mp4?" width="600" height="380" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></video>
+
+      <div id="chip-reload-success"></div>
+
+    </div>
+  </div>
+
+<script src="/Static/pobrecito.js"></script>
+{%endblock%}

@@ -20,7 +20,15 @@
 {% if user %}
 
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-  <span class="navbar-brand mb-0 h1">POK3R NIGHTS</span>
+  <span class="navbar-brand mb-0 h1">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="/pok3r_nights">
+          POK3R NIGHTS
+        </a>
+      </li>
+    </ul>
+  </span>
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -28,7 +36,7 @@
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto">
       <li class="nav-item active">
-        <a class="nav-link" href="https://pok3r-nights.herokuapp.com/texas_hold_em/{{ user.id }}">
+        <a class="nav-link" href="/texas_hold_em">
           Texas Hold'Em
         </a>
       </li>
@@ -36,7 +44,7 @@
     <div class="div-inline">
       <ul class="navbar-nav mr-auto">
         <li class="nav-item active">
-          <a class="nav-link" href=#>User Profile</a>
+          <a class="nav-link" href="/update/user">Update Account</a>
         </li>
       </ul>
     </div>
@@ -45,7 +53,7 @@
 
 {% endif %}
 
-<body>
+<body id="body">
 
   <div id="flash">
     {% with messages = get_flashed_messages() %}
@@ -70,7 +78,7 @@
           <div class="card" style="border-radius: 1rem; background-color: ghostwhite;">
             <div class="row g-0">
               <div class="col-md-6 col-lg-5 d-none d-md-block">
-                <img src="https://images.unsplash.com/photo-1630918295249-116eac5624b1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NTF8fHBva2VyfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=900&q=60"
+                <img src="../Static/Images/ace-of-spades.avif"
                   alt="login form" class="img-fluid" style="border-radius: 1rem 0 0 1rem;" />
               </div>
               <div class="col-md-6 col-lg-7 d-flex align-items-center">
@@ -89,7 +97,7 @@
                   <br>
 
                   <p class="mb-5 pb-lg-2" style="color: #393f81;">New to POK3R NIGHTS?
-                    <a href="/create_account" id="register">Create an account.</a></p>
+                    <a href="/register" id="register">Create an account.</a></p>
 
                 </div>
               </div>

@@ -1,3 +1,9 @@
+// Useful code to alter background if user or ai-opp is all-in.
+// htmlBody = document.getElementById('body');
+// htmlBody.style.background = `url("../Static/Images/alt-star-backdrop.avif") no-repeat center center fixed`;
+// texasHoldEmBackground = document.getElementById('th');
+// texasHoldEmBackground.style.background = `url("../Static/Images/alt-star-backdrop.avif") no-repeat center center fixed`;
+
 /* SECTION [0]: ESTABLISHING KEY VARIABLES */
 
 // The following HTML elements are *always* generated at the...
@@ -8,6 +14,7 @@ const revealRiverButton = document.getElementById('reveal-river-btn');
 
 // The following variables capture elements related to...
 // the active-user.
+const userHand = document.getElementById('user-hand');
 const userChipCount = document.getElementById('user-chip-count');
 const userCommitedChips = document.getElementById('user-commited');
 const userBlind = document.getElementById('user-blind');
@@ -97,6 +104,53 @@ async function updateOppStack() {
   }
 }
 
+async function getUserCards() {
+  try {
+    const res = await axios.get('/texas_hold_em/user_cards');
+    console.log(`User Hand: ${res.data}`);
+    const userCards = [];
+    res.data.forEach((element) =>
+      userCards.push(element.join().replace(',', ''))
+    );
+    console.log(userCards);
+    userCards.forEach((card) => {
+      console.log(card[1]);
+      if (card[1] === '\u2660') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'black-card');
+        revealCard.innerText = card;
+        userHand.append(revealCard);
+        console.log(`${card} has been dealt to the active user.`);
+      } else if (card[1] === '\u2663') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'black-card');
+        revealCard.innerText = card;
+        userHand.append(revealCard);
+        console.log(`${card} has been dealt to the active user.`);
+      } else if (card[1] === '\u2665') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'red-card');
+        revealCard.innerText = card;
+        userHand.append(revealCard);
+        console.log(`${card} has been dealt to the active user.`);
+      } else if (card[1] === '\u2666') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'red-card');
+        revealCard.innerText = card;
+        userHand.append(revealCard);
+        console.log(`${card} has been dealt to the active user.`);
+      }
+    });
+    console.log(
+      `${
+        userHand.children.length - 1
+      } cards have been dealt to the active user.`
+    );
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 async function getOppCards() {
   try {
     const res = await axios.get('/texas_hold_em/ai_opp_cards');
@@ -106,12 +160,39 @@ async function getOppCards() {
       computerHand.push(element.join().replace(',', ''))
     );
     console.log(computerHand);
-    displayHand = document.createElement('td');
-    let i = 0;
-    for (i = 0; i < computerHand.length; i++) {
-      displayHand.innerText += `${computerHand[i]} `;
-    }
-    oppHand.append(displayHand);
+    computerHand.forEach((card) => {
+      console.log(card[1]);
+      if (card[1] === '\u2660') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'black-card');
+        revealCard.innerText = card;
+        oppHand.append(revealCard);
+        console.log(`${card} has been revealed.`);
+      } else if (card[1] === '\u2663') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'black-card');
+        revealCard.innerText = card;
+        oppHand.append(revealCard);
+        console.log(`${card} has been revealed.`);
+      } else if (card[1] === '\u2665') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'red-card');
+        revealCard.innerText = card;
+        oppHand.append(revealCard);
+        console.log(`${card} has been revealed.`);
+      } else if (card[1] === '\u2666') {
+        let revealCard = document.createElement('td');
+        revealCard.setAttribute('class', 'red-card');
+        revealCard.innerText = card;
+        oppHand.append(revealCard);
+        console.log(`${card} has been revealed.`);
+      }
+    });
+    console.log(
+      `${
+        oppHand.children.length - 1
+      } of the opponent's cards have been revealed.`
+    );
   } catch (error) {
     console.log(error);
   }
@@ -234,6 +315,7 @@ function generateCallButton(path) {
 
     async function userCall() {
       try {
+        console.log(path);
         const res = await axios.get(path);
 
         updateCommitedChips(userCommitedChips, res.data);
@@ -460,7 +542,9 @@ class Bet {
             }
 
             // Generate a CALL button for users (+) reveal the FOLD button.
-            generateCallButton(`user_${queryObject['round']}_call`);
+            generateCallButton(
+              `texas_hold_em/user_${queryObject['round']}_call`
+            );
             foldButton.hidden = false;
 
             // In each betting round of Texas Hold'em there can be one initial bet...
@@ -506,6 +590,8 @@ class Bet {
 window.onload = function action() {
   console.log(`User (blind) Chips Commited: ${userBlind.innerText}`);
   console.log(`AI (blind) Chips Commited: ${oppBlind.innerText}`);
+
+  getUserCards();
 
   // If the ai-opp is playing from the small-blind position...
   // then they will be the first player to act.
@@ -637,16 +723,43 @@ revealFlopButton.onclick = function revealFlop(evt) {
   async function getFlop() {
     try {
       const res = await axios.get('/texas_hold_em/flop');
-      console.log(`FLOP: ${res.data}`);
       const flop = [];
-      res.data.forEach((element) => flop.push(element.join().replace(',', '')));
+      res.data.forEach((element) => {
+        flop.push(element.join().replace(',', ''));
+      });
       console.log(flop);
-      displayFlop = document.createElement('td');
-      let i = 0;
-      for (i = 0; i < flop.length; i++) {
-        displayFlop.innerText += `${flop[i]} `;
-      }
-      communityCards.append(displayFlop);
+      flop.forEach((card) => {
+        if (card[1] === '\u2660') {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'black-card');
+          revealCard.innerText = card;
+          communityCards.append(revealCard);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2663') {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'black-card');
+          revealCard.innerText = card;
+          communityCards.append(revealCard);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2665') {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'red-card');
+          revealCard.innerText = card;
+          communityCards.append(revealCard);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2666') {
+          let revealCard = document.createElement('td');
+          revealCard.innerText = card;
+          revealCard.setAttribute('class', 'red-card');
+          communityCards.append(revealCard);
+          console.log(`${card} has been appended to the board.`);
+        }
+      });
+      console.log(
+        `${
+          communityCards.children.length - 1
+        } community cards have been revealed.`
+      );
     } catch (error) {
       console.log(error);
     }
@@ -780,9 +893,39 @@ revealTurnButton.onclick = function revealTurn(evt) {
       console.log(`TURN: ${res.data}`);
       const turn = [];
       res.data.forEach((element) => turn.push(element.join().replace(',', '')));
-      displayTurn = document.createElement('td');
-      displayTurn.innerText = `${turn} `;
-      communityCards.append(displayTurn);
+      console.log(turn);
+      turn.forEach((card) => {
+        if (card[1] === '\u2660') {
+          let displayTurn = document.createElement('td');
+          displayTurn.setAttribute('class', 'black-card');
+          displayTurn.innerText = `${turn} `;
+          communityCards.append(displayTurn);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2663') {
+          let displayTurn = document.createElement('td');
+          displayTurn.setAttribute('class', 'black-card');
+          displayTurn.innerText = `${turn} `;
+          communityCards.append(displayTurn);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2665') {
+          let displayTurn = document.createElement('td');
+          displayTurn.setAttribute('class', 'red-card');
+          displayTurn.innerText = `${turn} `;
+          communityCards.append(displayTurn);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2666') {
+          let displayTurn = document.createElement('td');
+          displayTurn.setAttribute('class', 'red-card');
+          displayTurn.innerText = `${turn} `;
+          communityCards.append(displayTurn);
+          console.log(`${card} has been appended to the board.`);
+        }
+      });
+      console.log(
+        `${
+          communityCards.children.length - 1
+        } community cards have been revealed.`
+      );
     } catch (error) {
       console.log(error);
     }
@@ -904,9 +1047,39 @@ revealRiverButton.onclick = function revealRiver(evt) {
       res.data.forEach((element) =>
         river.push(element.join().replace(',', ''))
       );
-      displayRiver = document.createElement('td');
-      displayRiver.innerText = river;
-      communityCards.append(displayRiver);
+      console.log(river);
+      river.forEach((card) => {
+        if (card[1] === '\u2660') {
+          let displayRiver = document.createElement('td');
+          displayRiver.setAttribute('class', 'black-card');
+          displayRiver.innerText = `${river} `;
+          communityCards.append(displayRiver);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2663') {
+          let displayRiver = document.createElement('td');
+          displayRiver.setAttribute('class', 'black-card');
+          displayRiver.innerText = `${river} `;
+          communityCards.append(displayRiver);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2665') {
+          let displayRiver = document.createElement('td');
+          displayRiver.setAttribute('class', 'red-card');
+          displayRiver.innerText = `${river} `;
+          communityCards.append(displayRiver);
+          console.log(`${card} has been appended to the board.`);
+        } else if (card[1] === '\u2666') {
+          let displayRiver = document.createElement('td');
+          displayRiver.setAttribute('class', 'red-card');
+          displayRiver.innerText = `${river} `;
+          communityCards.append(displayRiver);
+          console.log(`${card} has been appended to the board.`);
+        }
+      });
+      console.log(
+        `${
+          communityCards.children.length - 1
+        } community cards have been revealed.`
+      );
     } catch (error) {
       console.log(error);
     }

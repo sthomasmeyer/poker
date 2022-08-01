@@ -7,11 +7,11 @@ that is meant to be manipulated by its "children", we must first write... -->
 {% block content %}
 <!-- Then, we can fill this [block] w/ anything our heart desires. -->
 
-    <div id="welcome-container">
-      <div id="welcome-elements">
-        <h1>Welcome to POK3R NIGHTS</h1>
-        <form action="https://pok3r-nights.herokuapp.com/texas_hold_em/{{ user.id }}"><button type="submit">Play Texas Hold'em</button></form>
-      </div>
+  <div id="welcome-container">
+    <div id="welcome-elements">
+      <h1>Welcome to POK3R NIGHTS</h1>
+      <form action="/texas_hold_em"><button type="submit">Play Texas Hold'em</button></form>
     </div>
+  </div>
 
 {% endblock %}

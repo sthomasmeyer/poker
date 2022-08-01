@@ -23,7 +23,7 @@ class TestDeckShuffleMethodPartOne(unittest.TestCase):
         first_thirteen_cards = new_deck.cards[:13]
         suit_vals = []
         for card in first_thirteen_cards:
-            if card.suit == 's':
+            if card.suit == "\u2660":
                 suit_vals.append(card.suit)
 
         # Test to ensure the first thirteen cards are all spades.
@@ -41,7 +41,7 @@ class TestDeckShuffleMethodPartTwo(unittest.TestCase):
         first_thirteen_cards = new_deck.cards[:13]
         suit_vals = []
         for card in first_thirteen_cards:
-            if card.suit == 's':
+            if card.suit == "\u2660":
                 suit_vals.append(card.suit)
 
         # Test to ensure the first thirteen cards are NOT all spades.

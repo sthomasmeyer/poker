@@ -575,6 +575,7 @@ def check_pair(hand):
         )
         return score
 
+
 ### END of the hand-rankings code. ###
 
 ### The following code is designed for informal testing of the hand-ranking system. ###

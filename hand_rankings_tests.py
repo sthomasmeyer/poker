@@ -21,50 +21,50 @@ player_four = Player("Cyrill", 700000)
 alt_players.append(player_four)
 
 # Generate two hole cards for player_one
-ace_of_spades = Card("s", "A")
-ace_of_clubs = Card("c", "A")
+ace_of_spades = Card("\u2660", "A")
+ace_of_clubs = Card("\u2663", "A")
 
 player_one.hole_cards.append(ace_of_spades)
 player_one.hole_cards.append(ace_of_clubs)
 
 # Generate two hole cards for player_two
-eight_of_diamonds = Card("d", "8")
-king_of_diamonds = Card("d", "K")
+eight_of_diamonds = Card("\u2666", "8")
+king_of_diamonds = Card("\u2666", "K")
 
 player_two.hole_cards.append(eight_of_diamonds)
 player_two.hole_cards.append(king_of_diamonds)
 
 # Generate two hole cards for player_three
-ace_of_spades = Card("s", "A")
-three_of_spades = Card("s", "3")
+ace_of_spades = Card("\u2660", "A")
+three_of_spades = Card("\u2660", "3")
 
 player_three.hole_cards.append(ace_of_spades)
 player_three.hole_cards.append(three_of_spades)
 
 # Generate two hole cards for player_four
-ace_of_hearts = Card("h", "A")
-queen_of_spades = Card("s", "Q")
+ace_of_hearts = Card("\u2665", "A")
+queen_of_spades = Card("\u2660", "Q")
 
 player_four.hole_cards.append(ace_of_hearts)
 player_four.hole_cards.append(queen_of_spades)
 
 # Generate five community cards
-ace_of_hearts = Card("h", "A")
-ace_of_diamonds = Card("d", "A")
-eight_of_hearts = Card("h", "8")
+ace_of_hearts = Card("\u2665", "A")
+ace_of_diamonds = Card("\u2666", "A")
+eight_of_hearts = Card("\u2665", "8")
 
-three_of_clubs = Card("c", "3")
+three_of_clubs = Card("\u2663", "3")
 
-king_of_clubs = Card("c", "K")
+king_of_clubs = Card("\u2663", "K")
 
 # Generate five alternate community cards
-two_of_spades = Card("s", "2")
-three_of_diamonds = Card("d", "3")
-four_of_spades = Card("s", "4")
+two_of_spades = Card("\u2660", "2")
+three_of_diamonds = Card("\u2666", "3")
+four_of_spades = Card("\u2660", "4")
 
-queen_of_hearts = Card("h", "Q")
+queen_of_hearts = Card("\u2665", "Q")
 
-five_of_spades = Card("s", "5")
+five_of_spades = Card("\u2660", "5")
 
 # Append the community cards to each players post_river_hand
 for player in players:

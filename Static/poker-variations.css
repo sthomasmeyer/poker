@@ -1,5 +1,5 @@
 body {
-  background: url("https://images.unsplash.com/photo-1518514854541-fe58ae2a5ef1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80") no-repeat center center fixed;
+  background: url("../Static/Images/og-space-backdrop.avif") no-repeat center center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
@@ -22,7 +22,7 @@ button:hover {
   margin: 10px;
   padding: 5px;
   padding-right: 27px;
-  font-size: 11px;
+  font-size: 12px;
   width: fit-content;
   border: 2px solid black;
   border-radius: 1rem 0 0 1rem;
@@ -40,10 +40,29 @@ li {
 
 /* END CSS for password instructions */
 
+/* BEGIN CSS for account update info */
+
+#acct-update-directions {
+  margin: 10px;
+  padding: 5px;
+  padding-right: 27px;
+  font-size: 14px;
+  width: fit-content;
+  border: 2px solid black;
+  border-radius: 1rem 0 0 1rem;
+}
+
+#acct-update-directions,
+p {
+  font-weight: bolder;
+}
+
+/* END CSS for account update info */
+
 /* BEGIN CSS for welcome page */
 
 #welcome-container {
-  background: url("https://images.unsplash.com/photo-1518514854541-fe58ae2a5ef1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80") no-repeat center center fixed;
+  background: url("../Static/Images/og-space-backdrop.avif") no-repeat center center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
@@ -80,16 +99,88 @@ li {
 
 #welcome-elements button:hover {
   background-color: black;
-  box-shadow: -4px 6px ghostwhite;
+  box-shadow: -2px 3px ghostwhite;
 }
 
 /* END CSS for welcome page */
 
+/* BEGIN CSS for chip-reload */
+
+#chip-reload-container {
+  background: url("../Static/Images/og-space-backdrop.avif") no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  height: 100vh;
+}
+
+#chip-reload-elements {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#chip-reload-elements h1 {
+  color: ghostwhite;
+  font-variant:small-caps;
+  font-size: 4em;
+  white-space: nowrap;
+  margin-bottom: 3%;
+}
+
+#chip-reload-elements button {
+  background-color: transparent;
+  border: 3px solid ghostwhite;
+  color: ghostwhite;
+  font-size: 2em;
+  white-space: nowrap;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+#chip-reload-elements button:hover {
+  background-color: black;
+  box-shadow: -2px 3px ghostwhite;
+}
+
+#chip-reload-elements video {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 20px;
+}
+
+#chip-reload-elements #chip-reload-success {
+  text-align: center;
+}
+
+#chip-reload-elements h2 {
+  color: ghostwhite;
+  font-variant:small-caps;
+  font-size: 3em;
+  white-space: nowrap;
+}
+
+#chip-reload-elements p {
+  font-size: 18px;
+  color: ghostwhite;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 4%;
+}
+
+/* END CSS for chip-reload */
+
 /* BEGIN texas hold'em-related CSS. */
 
 #th {
-  /* background-color: seashell; */
-  background: url("https://images.unsplash.com/photo-1518514854541-fe58ae2a5ef1?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80") no-repeat center center fixed;
+  background: url("../Static/Images/og-space-backdrop.avif") no-repeat center center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
@@ -111,7 +202,8 @@ li {
 }
 
 .th-player-info {
-  background-color: lightskyblue;
+  color: ghostwhite;
+  background-color: #002B4D;
   outline: 7.14px solid ghostwhite;
   margin-left: auto;
   margin-right: auto;
@@ -137,22 +229,32 @@ li {
 #th-user #user-chip-count td {
   background-color: lightseagreen;
   color: ghostwhite;
+  align-items: center;
+  text-align: center;
+  height: 50px;
+  width: 50px;
   border: 2px solid ghostwhite;
+  border-radius: 50%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
   font-weight: bolder;
+  box-shadow: -2.5px 0.75px 6px rgba(248, 248, 255, 1);
 }
 
 #th-user #user-hand td {
-  background-color: lightcoral;
-  color: ghostwhite;
-  border: 2px solid ghostwhite;
+  background-color: ghostwhite;
+  align-items: center;
+  text-align: center; 
+  height: 60px;
+  width: 48px;
+  border-radius: 15%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
+  font-size: larger;
   font-variant: small-caps;
   font-weight: bolder;
 }
@@ -160,17 +262,23 @@ li {
 #th-user #user-commited td {
   background-color: lightseagreen;
   color: ghostwhite;
+  align-items: center;
+  text-align: center;
+  height: 50px;
+  width: 50px;
   border: 2px solid ghostwhite;
+  border-radius: 50%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
   font-variant: small-caps;
   font-weight: bolder;
+  box-shadow: -2.5px 0.75px 6px rgba(248, 248, 255, 1);
 }
 
 #th-user #user-score td {
-  background-color: #343a40;
+  background-color: #0B1026;
   color: ghostwhite;
   border: 2px solid ghostwhite;
   padding: 5px;
@@ -190,7 +298,7 @@ li {
 }
 
 #user-options #th-user-fold #fold-btn:hover {
-  background-color: #343a40;
+  background-color: #0B1026;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -206,7 +314,7 @@ li {
 }
 
 #user-options #allocator-container #allocator-submit-btn:hover {
-  background-color: lightcoral;
+  background-color: crimson;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -245,7 +353,7 @@ li {
 }
 
 #reveal-flop-btn:hover {
-  background-color: lightcoral;
+  background-color: crimson;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -258,7 +366,7 @@ li {
 }
 
 #reveal-turn-btn:hover {
-  background-color: lightcoral;
+  background-color: crimson;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -271,7 +379,7 @@ li {
 }
 
 #reveal-river-btn:hover {
-  background-color: lightcoral;
+  background-color: crimson;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -284,7 +392,7 @@ li {
 }
 
 #showdown-btn:hover {
-  background-color: #343a40;
+  background-color: #0B1026;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -297,7 +405,7 @@ li {
 }
 
 #next-hand-btn:hover {
-  background-color: lightcoral;
+  background-color: crimson;
   color: ghostwhite;
   font-weight: bolder;
   border: 2px solid ghostwhite;
@@ -324,22 +432,32 @@ li {
 #th-opp #ai-opp-chip-count td {
   background-color: lightseagreen;
   color: ghostwhite;
+  align-items: center;
+  text-align: center;
+  height: 50px;
+  width: 50px;
   border: 2px solid ghostwhite;
+  border-radius: 50%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
-  font-weight: bolder;  
+  font-weight: bolder;
+  box-shadow: -2.5px 0.75px 6px rgba(248, 248, 255, 1);
 }
 
 #th-opp #ai-opp-hand td {
-  background-color: lightcoral;
-  color: ghostwhite;
-  border: 2px solid ghostwhite;
+  background-color: ghostwhite;
+  align-items: center;
+  text-align: center; 
+  height: 60px;
+  width: 48px;
+  border-radius: 15%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
+  font-size: larger;
   font-variant: small-caps;
   font-weight: bolder;
 }
@@ -347,17 +465,22 @@ li {
 #th-opp #ai-opp-commited td {
   background-color: lightseagreen;
   color: ghostwhite;
+  align-items: center;
+  text-align: center;
+  height: 50px;
+  width: 50px;
   border: 2px solid ghostwhite;
+  border-radius: 50%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
-  font-variant: small-caps;
-  font-weight: bolder;  
+  font-weight: bolder;
+  box-shadow: -2.5px 0.75px 6px rgba(248, 248, 255, 1);
 }
 
 #th-opp #ai-opp-score td {
-  background-color: #343a40;
+  background-color: #0B1026;
   color: ghostwhite;
   border: 2px solid ghostwhite;
   padding: 5px;
@@ -372,7 +495,7 @@ li {
 /* BEGIN texas hold'em board sub-section */
 
 #th-board {
-  background-color: #343a40;
+  background-color: #0B1026;
   color: ghostwhite;
   outline: 7.14px solid ghostwhite;
   margin-left: auto;
@@ -394,28 +517,49 @@ li {
   font-weight: bold; 
 }
 
+.black-card {
+  color: black;
+  border: 3px solid black;
+}
+
+.red-card {
+  color: crimson;
+  border: 3px solid crimson;
+}
+
 #th-board #community-cards td {
-  background-color: lightcoral;
-  color: ghostwhite;
-  border: 2px solid ghostwhite;
+  background-color: ghostwhite;
+  /* color: crimson; */
+  align-items: center;
+  text-align: center; 
+  height: 60px;
+  width: 48px;
+  /* border: 3px solid crimson; */
+  border-radius: 15%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
+  font-size: larger;
   font-variant: small-caps;
-  font-weight: bolder; 
+  font-weight: bolder;
 }
 
 #th-board #pot td {
   background-color: lightseagreen;
   color: ghostwhite;
+  align-items: center;
+  text-align: center;
+  height: 50px;
+  width: 50px;
   border: 2px solid ghostwhite;
+  border-radius: 50%;
   padding: 5px;
   margin-left: 10px;
   margin-top: 5px;
   margin-bottom: 5px;
-  font-variant: small-caps;
   font-weight: bolder;
+  box-shadow: -2.5px 0.75px 6px rgba(248, 248, 255, 1);
 }
 
 /* END texas hold'em board sub-section */

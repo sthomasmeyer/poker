@@ -59,7 +59,7 @@ CORS(app)
 # It is important to do this *before* calling the [connect_db(app)] function.
 
 if (os.environ.get("FLASK_ENV") == "development"):
-    print(f"This app is deployed in a {os.environ.get('FLASK_ENV')} environment.")
+    print(f"This app is deployed in a development environment.")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
         "DATABASE_URL", dev_db_connection
@@ -68,7 +68,7 @@ if (os.environ.get("FLASK_ENV") == "development"):
     app.config["SECRET_KEY"] = new_secret_key
 
 elif (os.environ.get("FLASK_ENV") == "testing"):
-    print(f"This app is deployed in a {os.environ.get('FLASK_ENV')} environment.")
+    print(f"This app is deployed in a testing environment.")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
         "DATABASE_URL", test_db_connection
@@ -102,7 +102,12 @@ connect_db(app)
 # db.create_all()
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
+def redirection():
+    return redirect("/login")
+
+
+@app.route("/login", methods=["GET", "POST"])
 def home():
     """Display a landing page [base.html], where users will log in or create a new account."""
 
@@ -134,7 +139,7 @@ def home():
 
         if (not existing_user):
             flash("There is no account associated with that username.")
-            return redirect("/")
+            return redirect("/login")
 
         if (
             existing_user.username == candidate.username
@@ -159,7 +164,7 @@ def home():
                 existing_user.capital = json.dumps(int_user_capital)
             db.session.commit()
 
-            return redirect(f"/user/{user_id}")
+            return redirect("/pok3r_nights")
 
         elif (
             existing_user.username == candidate.username
@@ -167,12 +172,12 @@ def home():
             == False
         ):
             flash("Incorrect password.")
-            return redirect("/")
+            return redirect("/login")
 
     return render_template("base.html", form=form)
 
 
-@app.route("/create_account", methods=["GET", "POST"])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     """Direct new users to the account registration form."""
 
@@ -200,12 +205,12 @@ def register():
         for user in users:
             if user.username == new_user.username:
                 flash("An account associated with that username already exists.")
-                return redirect("/create_account")
+                return redirect("/register")
 
         for user in users:
             if user.email == new_user.email:
                 flash("An account associated with that email address already exists.")
-                return redirect("/create_account")
+                return redirect("/register")
 
         # Use [bcrypt] to generate a "hashed" version of the user's password...
         # This is *important* bc storing it as plaintext in our database...
@@ -224,34 +229,26 @@ def register():
         flash(
             f"An account has been created for {new_user.username} at {new_user.formatted_date}."
         )
-        return redirect("/")
+        return redirect("/login")
 
     else:
-        return render_template("create_account.html", form=form)
+        return render_template("register.html", form=form)
 
 
-@app.route("/user/<int:user_id>", methods=["GET", "POST"])
-def successful_login(user_id):
+@app.route("/pok3r_nights", methods=["GET", "POST"])
+def welcome():
+    user_id = session["user_id"]
     user = User.query.get_or_404(user_id)
 
-    # If a user attempts to access another user's profile...
-    # restart the application (+) flash a helpful message.
-    if session["user_id"] != user_id:
-        flash("Access denied.")
-        return redirect("/")
+    session["ai_stack"] = 25
 
-    session["ai_stack"] = 100
-
-    return render_template("successful_login.html", user=user)
+    return render_template("welcome.html", user=user)
 
 
-@app.route("/update/user/<int:user_id>", methods=["GET", "POST"])
-def update(user_id):
+@app.route("/update/user", methods=["GET", "POST"])
+def update():
+    user_id = session["user_id"]
     user = User.query.get_or_404(user_id)
-
-    if session["user_id"] != user_id:
-        flash("Access denied.")
-        return redirect("/")
 
     form = UpdateAccountForm()
 
@@ -263,7 +260,7 @@ def update(user_id):
             for existing_user in users:
                 if existing_user.username == request.form["username"]:
                     flash("An account associated with that username already exists.")
-                    return redirect(f"/update/user/{user_id}")
+                    return redirect(f"/update/user")
 
         if request.form["email"] != user.email:
             for existing_user in users:
@@ -271,7 +268,7 @@ def update(user_id):
                     flash(
                         "An account associated with that email address already exists."
                     )
-                    return redirect(f"/update/user/{user_id}")
+                    return redirect(f"/update/user")
 
         if (
             request.form["username"] == user.username
@@ -282,7 +279,7 @@ def update(user_id):
                 == True
             ):
                 flash("username (+) email address (+) password unaltered")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
             else:
                 updated_pwd = bcrypt.generate_password_hash(request.form["password"])
                 updated_utf8_pwd = updated_pwd.decode("utf8")
@@ -290,7 +287,7 @@ def update(user_id):
                 db.session.commit()
                 flash("username (+) email address unaltered")
                 flash("password updated")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
 
         if (
             request.form["email"] == user.email
@@ -304,7 +301,7 @@ def update(user_id):
                 db.session.commit()
                 flash("username updated")
                 flash("email address (+) password unaltered")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
             else:
                 updated_pwd = bcrypt.generate_password_hash(request.form["password"])
                 updated_utf8_pwd = updated_pwd.decode("utf8")
@@ -313,7 +310,7 @@ def update(user_id):
                 db.session.commit()
                 flash("username (+) password updated")
                 flash("email address unaltered")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
 
         if (
             request.form["username"] == user.username
@@ -327,7 +324,7 @@ def update(user_id):
                 db.session.commit()
                 flash("email address updated")
                 flash("username (+) password unaltered")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
             else:
                 updated_pwd = bcrypt.generate_password_hash(request.form["password"])
                 updated_utf8_pwd = updated_pwd.decode("utf8")
@@ -336,7 +333,7 @@ def update(user_id):
                 db.session.commit()
                 flash("email address (+) password updated")
                 flash("username unaltered")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
 
         if (
             request.form["username"] != user.username
@@ -351,7 +348,7 @@ def update(user_id):
                 db.session.commit()
                 flash("username (+) email address updated")
                 flash("password unaltered")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
             else:
                 updated_pwd = bcrypt.generate_password_hash(request.form["password"])
                 updated_utf8_pwd = updated_pwd.decode("utf8")
@@ -360,7 +357,7 @@ def update(user_id):
                 user.username = request.form["username"]
                 db.session.commit()
                 flash("username (+) email address (+) password updated")
-                return redirect(f"/user/{user_id}")
+                return redirect(f"/pok3r_nights")
 
     return render_template("/update_account.html", user=user, form=form)
 
@@ -372,20 +369,29 @@ def destroy(user_id):
     db.session.delete(user)
     db.session.commit()
 
-    return redirect("/")
+    flash("account destroyed")
+    return redirect("/login")
 
 
-@app.route("/texas_hold_em/<int:user_id>", methods=["GET", "POST"])
-def play_texas_hold_em(user_id):
+@app.route("/texas_hold_em", methods=["GET", "POST"])
+def play_texas_hold_em():
+    user_id = session["user_id"]
     user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
     print(f"AI SessionStorge Chip-count: {ai_stack}")
 
-    # If a user attempts to access another user's game...
-    # restart the application (+) flash a helpful message.
-    if session["user_id"] != user_id:
-        flash("Access denied.")
-        return redirect("/user/<int:user_id>")
+    # Before dealing a new hand of Texas Hold'em, check to...
+    # make sure that both the user and the ai-opp have...
+    # enough chips to play.
+
+    # If a user has zero [0] chips remaining, then they have lost.
+    # Re-direct them to a "/texas_hold_em/loss" page, and give...
+    # them an opportunity to earn more chips.
+    # if active_user.stack < 1:
+
+    # If the ai-opp has zero [0] chips remaining, then the user wins!
+    # Re-direct the user to a "/texas_hold_em/win" page, and give...
+    # them an opportunity to play again.
 
     # Reset the bet- / raise-counters for each round of betting.
     session["pre_flop_raise_count"] = 0
@@ -446,6 +452,8 @@ def play_texas_hold_em(user_id):
 
     river = new_deck.river_protocol()
     new_game.river = new_deck.jsonify_cards(new_deck.river)
+    for card in new_deck.river:
+        print(card.suit)
     for player in players:
         player.incorporate_river(new_deck)
 
@@ -465,10 +473,21 @@ def play_texas_hold_em(user_id):
     pot = TexasHoldEmPot(hand_id=new_game.id)
 
     if pot.hand_id % 2 == 0:
-        active_user.dealer = True
         # If the user is the dealer, then they are responsible for...
         # the small blind. Deduct one unit from their stack (+) add...
         # it to their pre-flop-bet.
+        active_user.dealer = True
+
+        ### REDUNDANT chip-count check for both user and ai-opp ### 
+
+        # If a user has zero [0] chips remaining, then they have lost.
+        # Re-direct them to a "/texas_hold_em/loss" page, and give...
+        # them an opportunity to earn more chips.
+        # if active_user.stack < 1:
+
+        # If the ai-opp has zero [0] chips remaining, then the user wins!
+        # Re-direct the user to a "/texas_hold_em/win" page, and give...
+        # them an opportunity to play again.
 
         # These lines update the Player class instance.
         active_user.stack -= 1
@@ -488,10 +507,21 @@ def play_texas_hold_em(user_id):
 
         pot.total_chips = json.dumps(3)
     else:
-        computer_opponent.dealer = True
         # If the user is not the dealer, then they are responsible for...
         # the big blind. Deduct two units from their stack (+) add...
         # them to their pre-flop-bet.
+        computer_opponent.dealer = True
+
+        ### REDUNDANT chip-count check for both user and ai-opp ### 
+
+        # If a user has zero [0] chips remaining, then they have lost.
+        # Re-direct them to a "/texas_hold_em/loss" page, and give...
+        # them an opportunity to earn more chips.
+        # if active_user.stack < 1:
+
+        # If the ai-opp has zero [0] chips remaining, then the user wins!
+        # Re-direct the user to a "/texas_hold_em/win" page, and give...
+        # them an opportunity to play again.
 
         active_user.stack -= 2
         active_user.pre_flop_bet += 2
@@ -522,6 +552,41 @@ def play_texas_hold_em(user_id):
         river=river,
     )
 
+# The following route is designed for users who have lost all of their chips...
+# They will watch a five-second advertisement, then 25 chips will be added to...
+# their account. Note, this route applies to any and every game that users can play.
+@app.route("/pobrecito")
+def reload_chips():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+    user_capital = math.trunc(int(user.capital))
+
+    if user_capital < 2:
+        print("pobrecito")
+        user_capital = 25
+        user.capital = json.dumps(user_capital)
+        db.session.commit()
+    else:
+        flash("Access denied.")
+        return redirect(f"/pok3r_nights")
+
+    return render_template("/pobrecito.html", user=user)
+
+
+@app.route("/winner")
+def congratulations():
+    user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
+    ai_stack = session["ai_stack"]
+
+    if ai_stack < 2:
+        print(f"{user.username} has defeated Cortana.")
+
+    else:
+        flash("Access denied.")
+        return redirect(f"/pok3r_nights")
+
+    return render_template("winner.html", user=user)
 
 # The following routes are "hidden" in the sense that the user...
 # will not be aware of their existence. Nevertheless, they are...
@@ -594,32 +659,56 @@ def user_raise():
     active_pot = TexasHoldEmPot.query.filter_by(hand_id=saved_hand.id).first()
 
     if request.method == "POST":
+        ai_stack = session["ai_stack"]
+        raise_val = int(request.json["bet"])
+
         betting_round = request.json["round"]
         print("The current betting-round is: " + request.json["round"])
 
+        # Increment the raise count for the current round of betting.
         session[betting_round + "_raise_count"] += 1
-        print(session[betting_round + "_raise_count"])
 
+        # Capture the number of chips commited by the active user (+) ai-opp.
         if betting_round == "pre_flop":
             user_commited_chips = int(active_pot.user_pre_flop)
+            ai_commited_chips = int(active_pot.ai_pre_flop)
         elif betting_round == "post_flop":
             if active_pot.user_post_flop:
                 user_commited_chips = int(active_pot.user_post_flop)
+                ai_commited_chips = int(active_pot.ai_post_flop)
             else:
                 user_commited_chips = 0
+                ai_commited_chips = 0
         elif betting_round == "post_turn":
             if active_pot.user_post_turn:
                 user_commited_chips = int(active_pot.user_post_turn)
+                ai_commited_chips = int(active_pot.ai_post_turn)
             else:
                 user_commited_chips = 0
+                ai_commited_chips = 0
         elif betting_round == "post_river":
             if active_pot.user_post_river:
                 user_commited_chips = int(active_pot.user_post_river)
+                ai_commited_chips = int(active_pot.ai_post_turn)
             else:
                 user_commited_chips = 0
+                ai_commited_chips = 0
 
-        raise_val = request.json["bet"]
-        print("The active-user bets: " + request.json["bet"])
+        # Capture the difference between the number of chips the ai-opp...
+        # and the active user have commited.
+        difference = ai_commited_chips - user_commited_chips
+
+        # Does the ai-opp have enough capital to call the bet?
+        if raise_val > (ai_stack + difference):
+            print(f"The maximum bet is: {ai_stack + difference}")
+            print(f"In order to call this bet, your opponent will have to go all in.")
+            raise_val = (ai_stack + difference)
+
+        # Does the active user have enough capital to make the bet?
+        elif raise_val > int(user.capital):
+            print(f"You only have {user.capital} chips to bet.")
+            print("You are all in.")
+            raise_val = int(user.capital)
 
         user_commited_chips += int(raise_val)
         print(f"Updated user chips commited: {user_commited_chips}")
@@ -670,6 +759,7 @@ def user_raise():
 @app.route("/texas_hold_em/ai_pre_flop_decision", methods=["POST", "GET"])
 def ai_pre_flop_action():
     user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
@@ -708,6 +798,7 @@ def ai_pre_flop_action():
         ai_commited_chips,
         ai_stack,
         user_commited_chips,
+        int(user.capital),
         pot_val,
     )
     ai_action.apply_tier()
@@ -775,6 +866,7 @@ def get_flop():
 @app.route("/texas_hold_em/ai_post_flop_decision", methods=["POST", "GET"])
 def ai_post_flop_action():
     user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
@@ -836,6 +928,7 @@ def ai_post_flop_action():
         ai_commited_chips,
         ai_stack,
         user_commited_chips,
+        int(user.capital),
         pot_val,
     )
     # Use the [apply_tier()] method to assign a strength-level to the...
@@ -947,6 +1040,7 @@ def get_turn():
 @app.route("/texas_hold_em/ai_post_turn_decision", methods=["GET", "POST"])
 def ai_post_turn_action():
     user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
@@ -1021,6 +1115,7 @@ def ai_post_turn_action():
         ai_commited_chips,
         ai_stack,
         user_commited_chips,
+        int(user.capital),
         pot_val,
     )
     ai_action.apply_tier()
@@ -1113,6 +1208,7 @@ def get_river():
 @app.route("/texas_hold_em/ai_post_river_decision", methods=["GET", "POST"])
 def ai_post_river_action():
     user_id = session["user_id"]
+    user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
 
     saved_hand = TexasHoldEm.query.filter_by(user_id=user_id).first()
@@ -1191,6 +1287,7 @@ def ai_post_river_action():
         ai_commited_chips,
         ai_stack,
         user_commited_chips,
+        int(user.capital),
         pot_val,
     )
     ai_action.apply_tier()
@@ -1312,7 +1409,7 @@ def folded(user_id):
     db.session.commit()
 
     flash(f"Previous hand: [user-fold]")
-    return redirect(f"/texas_hold_em/{user_id}")
+    return redirect(f"/texas_hold_em")
 
 
 @app.route("/texas_hold_em/ai_opp_fold", methods=["GET", "POST"])
@@ -1336,7 +1433,7 @@ def opp_folded():
     db.session.commit()
 
     flash(f"Previous hand: [ai-opp-fold]")
-    return redirect(f"/texas_hold_em/{user_id}")
+    return redirect(f"/texas_hold_em")
 
 
 @app.route("/texas_hold_em/showdown", methods=["GET", "POST"])
@@ -1356,7 +1453,7 @@ def showdown():
         db.session.commit()
 
         flash(f"Previous hand: [win]")
-        return redirect(f"/texas_hold_em/{user_id}")
+        return redirect(f"/texas_hold_em")
 
     if saved_hand.user_score < saved_hand.computer_opp_score:
         int_pot = int(active_pot.total_chips)
@@ -1364,7 +1461,7 @@ def showdown():
         session["ai_stack"] = adjusted_ai_stack
 
         flash(f"Previous hand: [loss]")
-        return redirect(f"/texas_hold_em/{user_id}")
+        return redirect(f"/texas_hold_em")
 
     if saved_hand.user_score == saved_hand.computer_opp_score:
         int_pot = int(active_pot.total_chips)
@@ -1375,7 +1472,7 @@ def showdown():
         db.session.commit()
 
         flash(f"Previous hand: [draw]")
-        return redirect(f"/texas_hold_em/{user_id}")
+        return redirect(f"/texas_hold_em")
 
     saved_user_hands = TexasHoldEm.query.filter_by(user_id=user_id).all()
     for hand in saved_user_hands:

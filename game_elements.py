@@ -125,7 +125,7 @@ class Deck(object):
     def build(self):
         # Construct an initial [for] loop to cycle through each of the four suits...
         # ("s" = spades, "c" = clubs, "h" = hearts, and "d" = diamonds).
-        for s in ["s", "c", "h", "d"]:
+        for s in ["\u2660", "\u2666", "\u2663", "\u2665"]:
             # Construct a [for] loop within our outer-loop to cycle through...
             # every value -- from 2 to Ace -- for each one of the four suits.
             for v in ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]:
@@ -193,6 +193,7 @@ class Action(object):
         ai_commited_chips,
         ai_stack,
         user_commited_chips,
+        user_stack,
         pot_val,
     ):
         self.active_pot = active_pot
@@ -211,6 +212,7 @@ class Action(object):
         self.ai_commited_chips = ai_commited_chips
         self.ai_stack = ai_stack
         self.user_commited_chips = user_commited_chips
+        self.user_stack = user_stack
         # This [difference] attribute is useful bc it captures the...
         # difference between user_commited_chips and ai_commited_chips...
         # which is a key variable that informs the decision-making process.
@@ -318,49 +320,61 @@ class Action(object):
         elif self.hand_rank > 47 and self.betting_round == "post_river":
             self.tier = "one"
 
-    # IMPORTANT --> The ai-opp will currently bet chips that it...
-    # doesn't have. Stop it from doing this by programming it to check...
-    # the value of its 'stack' before placing a bet. If the value of...
-    # the bet it is attempting to place *exceeds* the value of its stack...
-    # then limit its bet.
-
     def bet(self):
         # If there has already been one bet and three raises...
         # then betting again is not an option; default to [call].
         if self.raise_count > 3:
             print("It is against the rules to bet.")
             return self.check_or_call()
+
+        # In the following scenario, the ai-opp has decided to either...
+        # raise from the small blind position or re-raise over the top...
+        # of a bet made by the active user.
         elif (
             self.raise_count <= 3 and self.user_commited_chips > self.ai_commited_chips
         ):
+            # Increment the raise count for the current round of betting.
             self.raise_count += 1
             session[self.betting_round + "_raise_count"] += 1
 
-            # WARNING --> Before placing this bet, ensure that the value...
-            # of the ai-opp's stack is *greater than* the value of the...
-            # difference. Otherwise, the ai-opp cannot bet.
-
-            # If the following statement is true, then the ai-opp will...
-            # go all-in to call the user's bet.
+            # If the number of chips required to call the active user's...
+            # bet is equal to the number of chips in the ai-opp's stack...
+            # then the ai-opp will go all in to call the user's bet.
             if self.difference == self.ai_stack:
-                self.ai_commited_chips += self.difference
-                self.ai_stack -= self.difference
-                self.pot_val += self.difference
+                return self.check_or_call()
 
-                session["ai_stack"] = self.ai_stack
-
-                self.active_pot.total_chips = json.dumps(self.pot_val)
-                db.session.commit()
-
-                return self.ai_commited_chips
-
+            # Given the context, adjust the ai-opp's commited chips...
+            # the ai-opp's stack, and the total value of the pot before...
+            # deciding how much to bet.
             self.ai_commited_chips += self.difference
             self.ai_stack -= self.difference
             updated_pot_val = self.pot_val + self.difference
 
-            self.ai_commited_chips += round(updated_pot_val / 2)
-            self.ai_stack -= round(updated_pot_val / 2)
-            self.pot_val = updated_pot_val + round(updated_pot_val / 2)
+            # Does the user have enough capital to call the bet? If not...
+            # then place a bet that will force the user to go all in.
+            if (round(updated_pot_val / 2) >= self.user_stack) and (
+                round(updated_pot_val / 2) <= self.ai_stack
+            ):
+                self.ai_commited_chips += self.user_stack
+                self.ai_stack -= self.user_stack
+                self.pot_val = updated_pot_val + self.user_stack
+
+            # The ai-opp has enough capital to make the bet, and the...
+            # active user has enough to call.
+            elif (round(updated_pot_val / 2) <= self.ai_stack) and (
+                round(updated_pot_val / 2) <= self.user_stack
+            ):
+                self.ai_commited_chips += round(updated_pot_val / 2)
+                self.ai_stack -= round(updated_pot_val / 2)
+                self.pot_val = updated_pot_val + round(updated_pot_val / 2)
+
+            # Does the ai-opp have enough capital to make the bet?
+            elif (round(updated_pot_val / 2) > self.ai_stack) and (
+                round(updated_pot_val / 2) <= self.user_stack
+              ):
+                self.ai_commited_chips += self.ai_stack
+                self.pot_val = updated_pot_val + self.ai_stack
+                self.ai_stack = 0
 
             session["ai_stack"] = self.ai_stack
 
@@ -372,12 +386,35 @@ class Action(object):
         elif (
             self.raise_count <= 3 and self.user_commited_chips == self.ai_commited_chips
         ):
+            # Increment the raise count for the current round of betting.
             self.raise_count += 1
             session[self.betting_round + "_raise_count"] += 1
 
-            self.ai_commited_chips += round(self.pot_val / 2)
-            self.ai_stack -= round(self.pot_val / 2)
-            self.pot_val += round(self.pot_val / 2)
+            # Does the user have enough capital to call the bet? If not...
+            # then place a bet that will force the user to go all in.
+            if (round(self.pot_val / 2) >= self.user_stack) and (
+                round(self.pot_val / 2) <= self.ai_stack
+            ):
+                self.ai_commited_chips += self.user_stack
+                self.ai_stack -= self.user_stack
+                self.pot_val = self.pot_val + self.user_stack
+
+            # The ai-opp has enough capital to make the bet, and the...
+            # active user has enough to call.
+            elif (round(self.pot_val / 2) <= self.ai_stack) and (
+                round(self.pot_val / 2) <= self.user_stack
+            ):
+                self.ai_commited_chips += round(self.pot_val / 2)
+                self.ai_stack -= round(self.pot_val / 2)
+                self.pot_val = self.pot_val + round(self.pot_val / 2)
+
+            # Does the ai-opp have enough capital to make the bet?
+            elif (round(self.pot_val / 2) > self.ai_stack) and (
+                round(self.pot_val / 2) <= self.user_stack
+            ):
+                self.ai_commited_chips += self.ai_stack
+                self.pot_val = self.pot_val + self.ai_stack
+                self.ai_stack = 0
 
             session["ai_stack"] = self.ai_stack
 
