@@ -52,6 +52,6 @@ After a successful login, users are directed to this landing page.
 
 ### Texas Hold'em Gameplay
 
-![](./Static/Images/th-gameplay-screenshot.jpg)
+![](./Static/Images/th-gameplay-screenshot.JPG)
 
 During gameplay all relevant information -- chip count, hole cards, community cards, pot, etc. -- is clearly displayed. Users have the option to check, raise, call, or fold (when appropriate).
