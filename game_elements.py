@@ -124,7 +124,7 @@ class Deck(object):
 
     def build(self):
         # Construct an initial [for] loop to cycle through each of the four suits...
-        # ("s" = spades, "c" = clubs, "h" = hearts, and "d" = diamonds).
+        # ("\u2660" = spades, "\u2663" = clubs, "\u2665" = hearts, and "\u2666" = diamonds).
         for s in ["\u2660", "\u2666", "\u2663", "\u2665"]:
             # Construct a [for] loop within our outer-loop to cycle through...
             # every value -- from 2 to Ace -- for each one of the four suits.

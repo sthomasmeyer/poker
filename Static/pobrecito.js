@@ -2,6 +2,9 @@ const chipReloadButton = document.getElementById('chip-reload-btn');
 const chipReloadAdvert = document.getElementById('chip-reload-advert');
 const chipReloadMessage = document.getElementById('chip-reload-message');
 const chipReloadSuccess = document.getElementById('chip-reload-success');
+const navbar = document.getElementById('bootstrap-navbar');
+
+navbar.setAttribute('hidden', true);
 
 chipReloadButton.onclick = function (evt) {
   evt.preventDefault();

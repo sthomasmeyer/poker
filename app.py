@@ -38,7 +38,10 @@ from hand_rankings import (
     check_four_of_a_kind,
 )
 
-if (os.environ.get("FLASK_ENV") == "development" or os.environ.get("FLASK_ENV") == "testing"):
+if (
+    os.environ.get("FLASK_ENV") == "development"
+    or os.environ.get("FLASK_ENV") == "testing"
+):
     # Import sensitive information from the [secrets.py] file.
     import secrets
 
@@ -58,7 +61,7 @@ CORS(app)
 # which will connect this application to a local PostgreSQL database...
 # It is important to do this *before* calling the [connect_db(app)] function.
 
-if (os.environ.get("FLASK_ENV") == "development"):
+if os.environ.get("FLASK_ENV") == "development":
     print(f"This app is deployed in a development environment.")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
@@ -67,7 +70,7 @@ if (os.environ.get("FLASK_ENV") == "development"):
 
     app.config["SECRET_KEY"] = new_secret_key
 
-elif (os.environ.get("FLASK_ENV") == "testing"):
+elif os.environ.get("FLASK_ENV") == "testing":
     print(f"This app is deployed in a testing environment.")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
@@ -76,7 +79,7 @@ elif (os.environ.get("FLASK_ENV") == "testing"):
 
     app.config["SECRET_KEY"] = new_secret_key
 
-else: 
+else:
     print("This app is deployed on a Heroku server.")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL").replace(
@@ -104,6 +107,8 @@ connect_db(app)
 
 @app.route("/")
 def redirection():
+    """Redirect users to the login page."""
+
     return redirect("/login")
 
 
@@ -112,9 +117,6 @@ def home():
     """Display a landing page [base.html], where users will log in or create a new account."""
 
     form = UserLoginForm()
-
-    ### CRITICAL ERROR --> if a user inputs an incorrect username and / or password...
-    # direct them to the create account page. 
 
     if form.validate_on_submit():
         # Create a [data] dictionary object. The value of each key [k] is established...
@@ -137,7 +139,7 @@ def home():
 
         existing_user = User.query.filter_by(username=candidate.username).first()
 
-        if (not existing_user):
+        if not existing_user:
             flash("There is no account associated with that username.")
             return redirect("/login")
 
@@ -152,7 +154,7 @@ def home():
             # session storage to keep track of which specific user is logged in.
             session["user_id"] = user_id
 
-            # Reward users w/ +25 capital on successful login.
+            # Reward users w/ capital on successful login.
             user_capital = existing_user.capital
             print(f"User capital status: {user_capital}")
             if user_capital == None:
@@ -160,7 +162,7 @@ def home():
                 existing_user.capital = json.dumps(user_capital)
             else:
                 int_user_capital = int(user_capital)
-                int_user_capital += 25
+                int_user_capital += 10
                 existing_user.capital = json.dumps(int_user_capital)
             db.session.commit()
 
@@ -362,15 +364,15 @@ def update():
     return render_template("/update_account.html", user=user, form=form)
 
 
-@app.route("/delete/user/<int:user_id>", methods=["POST"])
-def destroy(user_id):
-    user = User.query.get_or_404(user_id)
+# @app.route("/delete/user/<int:user_id>", methods=["POST"])
+# def destroy(user_id):
+#     user = User.query.get_or_404(user_id)
 
-    db.session.delete(user)
-    db.session.commit()
+#     db.session.delete(user)
+#     db.session.commit()
 
-    flash("account destroyed")
-    return redirect("/login")
+#     flash("account destroyed")
+#     return redirect("/login")
 
 
 @app.route("/texas_hold_em", methods=["GET", "POST"])
@@ -384,14 +386,17 @@ def play_texas_hold_em():
     # make sure that both the user and the ai-opp have...
     # enough chips to play.
 
-    # If a user has zero [0] chips remaining, then they have lost.
-    # Re-direct them to a "/texas_hold_em/loss" page, and give...
-    # them an opportunity to earn more chips.
-    # if active_user.stack < 1:
+    # If a user has one [1] or zero [0] chips remaining, then...
+    # they have lost. Re-direct them to a "/texas_hold_em/loss"... 
+    # page, and give them an opportunity to earn more chips.
+    if int(user.capital) < 2:
+        return redirect("/pobrecito")
 
-    # If the ai-opp has zero [0] chips remaining, then the user wins!
-    # Re-direct the user to a "/texas_hold_em/win" page, and give...
-    # them an opportunity to play again.
+    # If the ai-opp has one [1] or zero [0] chips remaining, then...
+    # they win! Re-direct the user to a "/texas_hold_em/win" page...
+    # and give them an opportunity to play again.
+    if ai_stack < 2:
+        return redirect("/congratulations")
 
     # Reset the bet- / raise-counters for each round of betting.
     session["pre_flop_raise_count"] = 0
@@ -452,8 +457,6 @@ def play_texas_hold_em():
 
     river = new_deck.river_protocol()
     new_game.river = new_deck.jsonify_cards(new_deck.river)
-    for card in new_deck.river:
-        print(card.suit)
     for player in players:
         player.incorporate_river(new_deck)
 
@@ -478,16 +481,19 @@ def play_texas_hold_em():
         # it to their pre-flop-bet.
         active_user.dealer = True
 
-        ### REDUNDANT chip-count check for both user and ai-opp ### 
+        ### REDUNDANT chip-count check for both user and ai-opp ###
 
         # If a user has zero [0] chips remaining, then they have lost.
         # Re-direct them to a "/texas_hold_em/loss" page, and give...
         # them an opportunity to earn more chips.
-        # if active_user.stack < 1:
+        if int(user.capital) < 2:
+            return redirect("/pobrecito")
 
         # If the ai-opp has zero [0] chips remaining, then the user wins!
         # Re-direct the user to a "/texas_hold_em/win" page, and give...
         # them an opportunity to play again.
+        if ai_stack < 2:
+            return redirect("/congratulations")
 
         # These lines update the Player class instance.
         active_user.stack -= 1
@@ -512,16 +518,19 @@ def play_texas_hold_em():
         # them to their pre-flop-bet.
         computer_opponent.dealer = True
 
-        ### REDUNDANT chip-count check for both user and ai-opp ### 
+        ### REDUNDANT chip-count check for both user and ai-opp ###
 
         # If a user has zero [0] chips remaining, then they have lost.
         # Re-direct them to a "/texas_hold_em/loss" page, and give...
         # them an opportunity to earn more chips.
-        # if active_user.stack < 1:
+        if int(user.capital) < 2:
+            return redirect("/pobrecito")
 
         # If the ai-opp has zero [0] chips remaining, then the user wins!
         # Re-direct the user to a "/texas_hold_em/win" page, and give...
         # them an opportunity to play again.
+        if ai_stack < 2:
+            return redirect("/congratulations")
 
         active_user.stack -= 2
         active_user.pre_flop_bet += 2
@@ -552,6 +561,7 @@ def play_texas_hold_em():
         river=river,
     )
 
+
 # The following route is designed for users who have lost all of their chips...
 # They will watch a five-second advertisement, then 25 chips will be added to...
 # their account. Note, this route applies to any and every game that users can play.
@@ -560,6 +570,9 @@ def reload_chips():
     user_id = session["user_id"]
     user = User.query.get_or_404(user_id)
     user_capital = math.trunc(int(user.capital))
+
+    # Clear flash messages
+    session.pop("_flashes", None)
 
     if user_capital < 2:
         print("pobrecito")
@@ -573,11 +586,14 @@ def reload_chips():
     return render_template("/pobrecito.html", user=user)
 
 
-@app.route("/winner")
+@app.route("/congratulations")
 def congratulations():
     user_id = session["user_id"]
     user = User.query.get_or_404(user_id)
     ai_stack = session["ai_stack"]
+
+    # Clear flash messages
+    session.pop("_flashes", None)
 
     if ai_stack < 2:
         print(f"{user.username} has defeated Cortana.")
@@ -586,7 +602,8 @@ def congratulations():
         flash("Access denied.")
         return redirect(f"/pok3r_nights")
 
-    return render_template("winner.html", user=user)
+    return render_template("congratulations.html", user=user)
+
 
 # The following routes are "hidden" in the sense that the user...
 # will not be aware of their existence. Nevertheless, they are...
@@ -702,7 +719,7 @@ def user_raise():
         if raise_val > (ai_stack + difference):
             print(f"The maximum bet is: {ai_stack + difference}")
             print(f"In order to call this bet, your opponent will have to go all in.")
-            raise_val = (ai_stack + difference)
+            raise_val = ai_stack + difference
 
         # Does the active user have enough capital to make the bet?
         elif raise_val > int(user.capital):

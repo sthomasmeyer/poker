@@ -1,9 +1,3 @@
-// Useful code to alter background if user or ai-opp is all-in.
-// htmlBody = document.getElementById('body');
-// htmlBody.style.background = `url("../Static/Images/alt-star-backdrop.avif") no-repeat center center fixed`;
-// texasHoldEmBackground = document.getElementById('th');
-// texasHoldEmBackground.style.background = `url("../Static/Images/alt-star-backdrop.avif") no-repeat center center fixed`;
-
 /* SECTION [0]: ESTABLISHING KEY VARIABLES */
 
 // The following HTML elements are *always* generated at the...
@@ -107,45 +101,70 @@ async function updateOppStack() {
 async function getUserCards() {
   try {
     const res = await axios.get('/texas_hold_em/user_cards');
-    console.log(`User Hand: ${res.data}`);
     const userCards = [];
     res.data.forEach((element) =>
       userCards.push(element.join().replace(',', ''))
     );
-    console.log(userCards);
-    userCards.forEach((card) => {
-      console.log(card[1]);
-      if (card[1] === '\u2660') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'black-card');
-        revealCard.innerText = card;
-        userHand.append(revealCard);
-        console.log(`${card} has been dealt to the active user.`);
-      } else if (card[1] === '\u2663') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'black-card');
-        revealCard.innerText = card;
-        userHand.append(revealCard);
-        console.log(`${card} has been dealt to the active user.`);
-      } else if (card[1] === '\u2665') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'red-card');
-        revealCard.innerText = card;
-        userHand.append(revealCard);
-        console.log(`${card} has been dealt to the active user.`);
-      } else if (card[1] === '\u2666') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'red-card');
-        revealCard.innerText = card;
-        userHand.append(revealCard);
-        console.log(`${card} has been dealt to the active user.`);
+
+    const userCardsTest = [...new Set(userCards)];
+    console.log(`User Hand: ${userCardsTest}`);
+
+    // If there are no duplicate elements. Create a [td] element...
+    // to represent each card in the hand, set a class attribute...
+    // ('black-card' or 'red-card'), and append it to the DOM.
+    if (userCards.length === userCardsTest.length) {
+      userCards.forEach((card) => {
+        if (
+          card[1] === '\u2660' ||
+          card[1] === '\u2663' ||
+          card[2] === '\u2660' ||
+          card[2] === '\u2663'
+        ) {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'black-card');
+          revealCard.innerText = card;
+          userHand.append(revealCard);
+          console.log(`${card} has been dealt to the active user.`);
+        } else if (
+          card[1] === '\u2665' ||
+          card[1] === '\u2666' ||
+          card[2] === '\u2665' ||
+          card[2] === '\u2666'
+        ) {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'red-card');
+          revealCard.innerText = card;
+          userHand.append(revealCard);
+          console.log(`${card} has been dealt to the active user.`);
+        }
+      });
+    } else {
+      try {
+        console.error(
+          `[duplicate values error] --> backup called to capture essential user hand data`
+        );
+        fetchUserCards();
+      } catch (error) {
+        console.log(error);
       }
-    });
-    console.log(
-      `${
-        userHand.children.length - 1
-      } cards have been dealt to the active user.`
-    );
+    }
+
+    // Make sure that each card was appended successfully.
+    if (userHand.children.length - 1 === 2) {
+      console.log(`[success] --> two cards have been dealt to the active user`);
+    } else {
+      try {
+        if (userHand.children[1]) {
+          userHand.children[1].remove();
+        }
+        console.error(
+          `[DOM-append failure] backup called to capture essential user hand data`
+        );
+        fetchUserCards();
+      } catch (error) {
+        console.log(error);
+      }
+    }
   } catch (error) {
     console.log(error);
   }
@@ -154,45 +173,66 @@ async function getUserCards() {
 async function getOppCards() {
   try {
     const res = await axios.get('/texas_hold_em/ai_opp_cards');
-    console.log(`Opp Hand: ${res.data}`);
     const computerHand = [];
     res.data.forEach((element) =>
       computerHand.push(element.join().replace(',', ''))
     );
-    console.log(computerHand);
-    computerHand.forEach((card) => {
-      console.log(card[1]);
-      if (card[1] === '\u2660') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'black-card');
-        revealCard.innerText = card;
-        oppHand.append(revealCard);
-        console.log(`${card} has been revealed.`);
-      } else if (card[1] === '\u2663') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'black-card');
-        revealCard.innerText = card;
-        oppHand.append(revealCard);
-        console.log(`${card} has been revealed.`);
-      } else if (card[1] === '\u2665') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'red-card');
-        revealCard.innerText = card;
-        oppHand.append(revealCard);
-        console.log(`${card} has been revealed.`);
-      } else if (card[1] === '\u2666') {
-        let revealCard = document.createElement('td');
-        revealCard.setAttribute('class', 'red-card');
-        revealCard.innerText = card;
-        oppHand.append(revealCard);
-        console.log(`${card} has been revealed.`);
+
+    const computerHandTest = [...new Set(computerHand)];
+    console.log(`Opp Hand: ${computerHandTest}`);
+
+    if (computerHand.length === computerHandTest.length) {
+      computerHand.forEach((card) => {
+        if (
+          card[1] === '\u2660' ||
+          card[1] === '\u2663' ||
+          card[2] === '\u2660' ||
+          card[2] === '\u2663'
+        ) {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'black-card');
+          revealCard.innerText = card;
+          oppHand.append(revealCard);
+          console.log(`${card} has been revealed.`);
+        } else if (
+          card[1] === '\u2665' ||
+          card[1] === '\u2666' ||
+          card[2] === '\u2665' ||
+          card[2] === '\u2666'
+        ) {
+          let revealCard = document.createElement('td');
+          revealCard.setAttribute('class', 'red-card');
+          revealCard.innerText = card;
+          oppHand.append(revealCard);
+          console.log(`${card} has been revealed.`);
+        }
+      });
+    } else {
+      try {
+        console.error(
+          `[duplicate values error] --> backup called to capture essential ai-opp hand data`
+        );
+        fetchOppCards();
+      } catch (error) {
+        console.log(error);
       }
-    });
-    console.log(
-      `${
-        oppHand.children.length - 1
-      } of the opponent's cards have been revealed.`
-    );
+    }
+
+    if (oppHand.children.length - 1 === 2) {
+      console.log(`[success] --> the ai-opp's hand has been revealed`);
+    } else {
+      try {
+        if (oppHand.children[1]) {
+          oppHand.children[1].remove();
+        }
+        console.error(
+          `[DOM-append failure] backup called to capture essential ai-opp hand data`
+        );
+        fetchOppCards();
+      } catch (error) {
+        console.log(error);
+      }
+    }
   } catch (error) {
     console.log(error);
   }
@@ -315,7 +355,6 @@ function generateCallButton(path) {
 
     async function userCall() {
       try {
-        console.log(path);
         const res = await axios.get(path);
 
         updateCommitedChips(userCommitedChips, res.data);
@@ -727,39 +766,73 @@ revealFlopButton.onclick = function revealFlop(evt) {
       res.data.forEach((element) => {
         flop.push(element.join().replace(',', ''));
       });
-      console.log(flop);
-      flop.forEach((card) => {
-        if (card[1] === '\u2660') {
-          let revealCard = document.createElement('td');
-          revealCard.setAttribute('class', 'black-card');
-          revealCard.innerText = card;
-          communityCards.append(revealCard);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2663') {
-          let revealCard = document.createElement('td');
-          revealCard.setAttribute('class', 'black-card');
-          revealCard.innerText = card;
-          communityCards.append(revealCard);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2665') {
-          let revealCard = document.createElement('td');
-          revealCard.setAttribute('class', 'red-card');
-          revealCard.innerText = card;
-          communityCards.append(revealCard);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2666') {
-          let revealCard = document.createElement('td');
-          revealCard.innerText = card;
-          revealCard.setAttribute('class', 'red-card');
-          communityCards.append(revealCard);
-          console.log(`${card} has been appended to the board.`);
+
+      const flopTest = [...new Set(flop)];
+      console.log(`FLOP: ${flopTest}`);
+
+      if (flop.length === flopTest.length) {
+        flop.forEach((card) => {
+          if (
+            card[1] === '\u2660' ||
+            card[1] === '\u2663' ||
+            card[2] === '\u2660' ||
+            card[2] === '\u2663'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'black-card');
+            revealCard.innerText = card;
+            communityCards.append(revealCard);
+            console.log(`${card} has been appended to the board.`);
+          } else if (
+            card[1] === '\u2665' ||
+            card[1] === '\u2666' ||
+            card[2] === '\u2665' ||
+            card[2] === '\u2666'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.innerText = card;
+            revealCard.setAttribute('class', 'red-card');
+            communityCards.append(revealCard);
+            console.log(`${card} has been appended to the board.`);
+          }
+        });
+      } else {
+        try {
+          console.error(
+            `[duplicate values error] --> backup called to capture essential flop data`
+          );
+          fetchFlop();
+        } catch (error) {
+          console.log(error);
         }
-      });
-      console.log(
-        `${
-          communityCards.children.length - 1
-        } community cards have been revealed.`
-      );
+      }
+
+      // The following code is important because it checks whether or...
+      // not this function was executed successfully. The value of...
+      // [communityCards.children.length - 1] should be [3]. If it...
+      // is, then "mission accomplished", carry on. If it is not...
+      // then this [getFlop()] function must be executed again.
+      if (communityCards.children.length - 1 === 3) {
+        console.log(`[success] --> the flop has been revealed`);
+      } else {
+        try {
+          if (communityCards.children[3]) {
+            communityCards.children[3].remove();
+          }
+          if (communityCards.children[2]) {
+            communityCards.children[2].remove();
+          }
+          if (communityCards.children[1]) {
+            communityCards.children[1].remove();
+          }
+          console.error(
+            `[DOM-append failure] backup called to capture essential flop data`
+          );
+          fetchFlop();
+        } catch (error) {
+          console.log(error);
+        }
+      }
     } catch (error) {
       console.log(error);
     }
@@ -890,30 +963,28 @@ revealTurnButton.onclick = function revealTurn(evt) {
   async function getTurn() {
     try {
       const res = await axios.get('/texas_hold_em/turn');
-      console.log(`TURN: ${res.data}`);
       const turn = [];
       res.data.forEach((element) => turn.push(element.join().replace(',', '')));
-      console.log(turn);
+      console.log(`TURN: ${turn}`);
+
       turn.forEach((card) => {
-        if (card[1] === '\u2660') {
+        if (
+          card[1] === '\u2660' ||
+          card[1] === '\u2663' ||
+          card[2] === '\u2660' ||
+          card[2] === '\u2663'
+        ) {
           let displayTurn = document.createElement('td');
           displayTurn.setAttribute('class', 'black-card');
           displayTurn.innerText = `${turn} `;
           communityCards.append(displayTurn);
           console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2663') {
-          let displayTurn = document.createElement('td');
-          displayTurn.setAttribute('class', 'black-card');
-          displayTurn.innerText = `${turn} `;
-          communityCards.append(displayTurn);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2665') {
-          let displayTurn = document.createElement('td');
-          displayTurn.setAttribute('class', 'red-card');
-          displayTurn.innerText = `${turn} `;
-          communityCards.append(displayTurn);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2666') {
+        } else if (
+          card[1] === '\u2665' ||
+          card[1] === '\u2666' ||
+          card[2] === '\u2665' ||
+          card[2] === '\u2666'
+        ) {
           let displayTurn = document.createElement('td');
           displayTurn.setAttribute('class', 'red-card');
           displayTurn.innerText = `${turn} `;
@@ -921,11 +992,15 @@ revealTurnButton.onclick = function revealTurn(evt) {
           console.log(`${card} has been appended to the board.`);
         }
       });
-      console.log(
-        `${
-          communityCards.children.length - 1
-        } community cards have been revealed.`
-      );
+
+      if (communityCards.children.length - 1 === 4) {
+        console.log(`[success] --> the 4th community card is on the board`);
+      } else {
+        console.error(
+          `[DOM-append failure] backup called to capture essential turn data`
+        );
+        // fetchTurn();
+      }
     } catch (error) {
       console.log(error);
     }
@@ -1042,32 +1117,30 @@ revealRiverButton.onclick = function revealRiver(evt) {
   async function getRiver() {
     try {
       const res = await axios.get('/texas_hold_em/river');
-      console.log(`RIVER: ${res.data}`);
       const river = [];
       res.data.forEach((element) =>
         river.push(element.join().replace(',', ''))
       );
-      console.log(river);
+      console.log(`RIVER: ${river}`);
+
       river.forEach((card) => {
-        if (card[1] === '\u2660') {
+        if (
+          card[1] === '\u2660' ||
+          card[1] === '\u2663' ||
+          card[2] === '\u2660' ||
+          card[2] === '\u2663'
+        ) {
           let displayRiver = document.createElement('td');
           displayRiver.setAttribute('class', 'black-card');
           displayRiver.innerText = `${river} `;
           communityCards.append(displayRiver);
           console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2663') {
-          let displayRiver = document.createElement('td');
-          displayRiver.setAttribute('class', 'black-card');
-          displayRiver.innerText = `${river} `;
-          communityCards.append(displayRiver);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2665') {
-          let displayRiver = document.createElement('td');
-          displayRiver.setAttribute('class', 'red-card');
-          displayRiver.innerText = `${river} `;
-          communityCards.append(displayRiver);
-          console.log(`${card} has been appended to the board.`);
-        } else if (card[1] === '\u2666') {
+        } else if (
+          card[1] === '\u2665' ||
+          card[1] === '\u2666' ||
+          card[2] === '\u2665' ||
+          card[2] === '\u2666'
+        ) {
           let displayRiver = document.createElement('td');
           displayRiver.setAttribute('class', 'red-card');
           displayRiver.innerText = `${river} `;
@@ -1075,11 +1148,15 @@ revealRiverButton.onclick = function revealRiver(evt) {
           console.log(`${card} has been appended to the board.`);
         }
       });
-      console.log(
-        `${
-          communityCards.children.length - 1
-        } community cards have been revealed.`
-      );
+
+      if (communityCards.children.length - 1 === 5) {
+        console.log(`[success] --> the 5th community card is on the board`);
+      } else {
+        console.error(
+          `[DOM-append failure] backup called to capture essential river data`
+        );
+        // fetchRiver();
+      }
     } catch (error) {
       console.log(error);
     }
@@ -1184,3 +1261,210 @@ revealRiverButton.onclick = function revealRiver(evt) {
     postRiverRaise.buttonOnClickFunctionality();
   }
 };
+
+/* SECTION [7]: BACKUP FUNCTIONS */
+
+// This [fetchUserCards()] function is designed as a backup...
+// for the [getUserCards()] function. They both have the same...
+// objective, but their methods differ --> 'fetch' uses the...
+// [fetch] method, whereas 'get' employs [axios].
+async function fetchUserCards() {
+  const userHoleCards = [];
+  fetch('/texas_hold_em/user_cards')
+    .then((response) => response.json())
+    .then((data) => {
+      data.forEach((element) => {
+        userHoleCards.push(element.join().replace(',', ''));
+      });
+
+      const userHoleCardsTest = [...new Set(userHoleCards)];
+      console.log(`User Hand: ${userHoleCardsTest}`);
+
+      // Ensure there are no duplicate values before appending...
+      // the user's hand to the DOM.
+      if (userHoleCards.length === userHoleCardsTest.length) {
+        userHoleCards.forEach((card) => {
+          if (
+            card[1] === '\u2660' ||
+            card[1] === '\u2663' ||
+            card[2] === '\u2660' ||
+            card[2] === '\u2663'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'black-card');
+            revealCard.innerText = card;
+            userHand.append(revealCard);
+            console.log(`${card} has been dealt to the active user.`);
+          } else if (
+            card[1] === '\u2665' ||
+            card[1] === '\u2666' ||
+            card[2] === '\u2665' ||
+            card[2] === '\u2666'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'red-card');
+            revealCard.innerText = card;
+            userHand.append(revealCard);
+            console.log(`${card} has been dealt to the active user.`);
+          }
+        });
+      } else {
+        // At this point, two attempts have been made to capture...
+        // vital data from the database. Both attempts failed...
+        // Return each player's committed chips, and deal the next hand.
+        console.log(`Houston, we have a problem...`);
+        console.log(
+          `Both the 'GET' and 'FETCH' methods have failed to capture the user's hand from the database.`
+        );
+      }
+
+      // Make sure that each card was appended successfully.
+      if (userHand.children.length - 1 === 2) {
+        console.log(
+          `[success] --> two cards have been dealt to the active user`
+        );
+      } else {
+        console.log(`Houston, we have a problem.`);
+        console.log(
+          `Both the 'GET' and 'FETCH' methods have failed to capture the user's hand from the database.`
+        );
+      }
+    });
+}
+
+// This [fetchOppCards()] function is designed as a backup...
+// for the [getOppCards()] function.
+async function fetchOppCards() {
+  const oppHoleCards = [];
+  fetch('/texas_hold_em/ai_opp_cards')
+    .then((response) => response.json())
+    .then((data) => {
+      data.forEach((element) => {
+        oppHoleCards.push(element.join().replace(',', ''));
+      });
+      const oppHoleCardsTest = [...new Set(oppHoleCards)];
+      console.log(`Opp Hand: ${oppHoleCardsTest}`);
+
+      // Ensure there are no duplicate values before appending...
+      // the ai-opp's hand to the DOM.
+      if (oppHoleCards.length === oppHoleCardsTest.length) {
+        oppHoleCards.forEach((card) => {
+          if (
+            card[1] === '\u2660' ||
+            card[1] === '\u2663' ||
+            card[2] === '\u2660' ||
+            card[2] === '\u2663'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'black-card');
+            revealCard.innerText = card;
+            oppHand.append(revealCard);
+            console.log(`${card} has been revealed.`);
+          } else if (
+            card[1] === '\u2665' ||
+            card[1] === '\u2666' ||
+            card[2] === '\u2665' ||
+            card[2] === '\u2666'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'red-card');
+            revealCard.innerText = card;
+            oppHand.append(revealCard);
+            console.log(`${card} has been revealed.`);
+          }
+        });
+      } else {
+        // At this point, two attempts have been made to capture...
+        // vital data from the database. Both attempts failed...
+        // Return each player's committed chips, and deal the next hand.
+        console.log(`Houston, we have a problem...`);
+        console.log(
+          `Both the 'GET' and 'FETCH' methods have failed to capture the ai-opp's hand from the database.`
+        );
+      }
+
+      // Make sure that each card was appended successfully.
+      if (oppHand.children.length - 1 === 2) {
+        console.log(`[success] --> the ai-opp's hand has been revealed`);
+      } else {
+        console.log(`Houston, we have a problem.`);
+        console.log(
+          `Both the 'GET' and 'FETCH' methods have failed to capture the ai-opp's hand from the database.`
+        );
+      }
+    });
+}
+
+async function fetchFlop() {
+  const backupFlop = [];
+  fetch('/texas_hold_em/flop')
+    .then((response) => response.json())
+    .then((data) => {
+      data.forEach((element) => {
+        backupFlop.push(element.join().replace(',', ''));
+      });
+
+      const backupFlopTest = [...new Set(backupFlop)];
+      console.log(`FLOP: ${backupFlopTest}`);
+
+      // Ensure there are no duplicate values before appending...
+      // the flop to the DOM.
+      if (backupFlop.length === backupFlopTest.length) {
+        backupFlop.forEach((card) => {
+          if (
+            card[1] === '\u2660' ||
+            card[1] === '\u2663' ||
+            card[2] === '\u2660' ||
+            card[2] === '\u2663'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'black-card');
+            revealCard.innerText = card;
+            communityCards.append(revealCard);
+            console.log(`${card} has been appended to the board.`);
+          } else if (
+            card[1] === '\u2665' ||
+            card[1] === '\u2666' ||
+            card[2] === '\u2665' ||
+            card[2] === '\u2666'
+          ) {
+            let revealCard = document.createElement('td');
+            revealCard.setAttribute('class', 'red-card');
+            revealCard.innerText = card;
+            communityCards.append(revealCard);
+            console.log(`${card} has been appended to the board.`);
+          }
+        });
+      } else {
+        // At this point, two attempts have been made to capture...
+        // vital data from the database. Both attempts failed...
+        // Return each player's committed chips, and deal the next hand.
+        console.log(`Houston, we have a problem...`);
+        console.log(
+          `Both the 'GET' and 'FETCH' methods have failed to capture the flop from the database.`
+        );
+      }
+
+      // Make sure that each card was appended successfully.
+      if (communityCards.children.length - 1 === 3) {
+        console.log(`[success] --> the flop has been revealed`);
+      } else {
+        console.log(`Houston, we have a problem...`);
+        console.log(
+          `Both the 'GET' and 'FETCH' methods have failed to capture the flop from the database.`
+        );
+      }
+    });
+}
+
+// async function fetchTurn() {}
+
+// async function fetchRiver() {}
+
+/* BONUS: RANDOM NOTES (+) MISCELLANEOUS CONTENT */
+
+// Useful code to alter background if user or ai-opp is all-in.
+// htmlBody = document.getElementById('body');
+// htmlBody.style.background = `url("../Static/Images/alt-star-backdrop.avif") no-repeat center center fixed`;
+// texasHoldEmBackground = document.getElementById('th');
+// texasHoldEmBackground.style.background = `url("../Static/Images/alt-star-backdrop.avif") no-repeat center center fixed`;

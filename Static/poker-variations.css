@@ -107,7 +107,7 @@ p {
 /* BEGIN CSS for chip-reload */
 
 #chip-reload-container {
-  background: url("../Static/Images/og-space-backdrop.avif") no-repeat center center fixed;
+  background: url("../Static/Images/space-backdrop.avif") no-repeat center center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
@@ -176,6 +176,79 @@ p {
 }
 
 /* END CSS for chip-reload */
+
+/* BEGIN CSS for player-congratulations */
+
+#congratulations-container {
+  background: url("../Static/Images/valhalla-one.avif") no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  height: 100vh;
+}
+
+#congratulations-elements {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #0B1026;
+  border: 3px solid ghostwhite;
+  text-align: center;
+  border-radius: 10px;
+  box-shadow: -2.5px 0.75px 6px rgba(248, 248, 255, 1);
+}
+
+#congratulations-elements h1 {
+  background-color: #0B1026;
+  color: ghostwhite;
+  font-variant:small-caps;
+  font-size: 4em;
+  white-space: nowrap;
+  display: block;
+  margin-top: 1%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 14px;
+  padding-right: 14px;
+  font-weight: bold;
+}
+
+#congratulations-elements button {
+  background-color: transparent;
+  border: 3px solid ghostwhite;
+  color: ghostwhite;
+  font-size: 1.5em;
+  white-space: nowrap;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 3%;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 10px;
+}
+
+#congratulations-elements button:hover {
+  background-color: #0B1026;
+  box-shadow: -2px 3px ghostwhite;
+}
+
+#congratulations-elements h3 {
+  color: ghostwhite;
+  font-variant:small-caps;
+  font-size: 2.5em;
+  white-space: nowrap;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 3%;
+}
+
+/* END CSS for player-congratulations */
 
 /* BEGIN texas hold'em-related CSS. */
 

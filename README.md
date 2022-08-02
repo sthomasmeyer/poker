@@ -14,7 +14,7 @@ In 1829, a group of degenerate French settlers brought the game of poker to New 
 
 This useful graphic from 888poker depicts 10 poker hands ranked from best (Royal Flush) to worst (High Card):
 
-![](./Static/Images/2022-07-12-11-08-40.png)
+![](./Static/Images/poker-hand-rankings.png)
 
 The following rules apply to **texas hold'em**, the most popular version of poker and the perfect place to start if you are a beginner.
 
@@ -34,24 +34,24 @@ The following rules apply to **texas hold'em**, the most popular version of poke
 
 ### User Login Form
 
-![](./Static/Images/2022-07-12-10-45-06.png)
+![](./Static/Images/login-screenshot.png)
 
 Users login with their unique username and password.
 
 ### Create a New Account
 
-![](./Static/Images/2022-07-12-10-45-35.png)
+![](./Static/Images/new-acct-screenshot.png)
 
 New users can create an account with a unique username and email address. Note, all passwords are hashed *before* being stored in the database.
 
 ### Successful Login Landing Page
 
-![](./Static/Images/2022-07-12-10-44-26.png)
+![](./Static/Images/welcome-page-screenshot.png)
 
 After a successful login, users are directed to this landing page.
 
 ### Texas Hold'em Gameplay
 
-![](./Static/Images/2022-07-12-10-46-00.png)
+![](./Static/Images/th-gameplay-screenshot.jpg)
 
 During gameplay all relevant information -- chip count, hole cards, community cards, pot, etc. -- is clearly displayed. Users have the option to check, raise, call, or fold (when appropriate).
