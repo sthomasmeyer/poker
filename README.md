@@ -2,10 +2,6 @@
 
 This application is designed to introduce users to the game of poker. It is an invaluable guide to both traditional and non-traditional variants: texas hold'em, pineapple, omaha hi-lo, seven card stud, midnight baseball, and criss cross.
 
-## Link to Live Demo
-
-[POK3R NIGHTS BETA](https://pok3r-nights.herokuapp.com/)
-
 ## A One-paragraph History of Poker
 
 In 1829, a group of degenerate French settlers brought the game of poker to New Orleans. From there it spread like wildfire, and quickly transformed itself from a dangerous game for outlaws to one embraced by the masses drawn to its elements of risk, competition, and consequence. It has drawn millions of viewers on live national television, and inspired blockbuster movies like Rounders (1989) and Molly's Game (2017). It is a game for everyone. A game for the average Joe playing with friends at a local bar, and a game for the billionaire playboy looking for an adrenaline rush. It is a game for you.
